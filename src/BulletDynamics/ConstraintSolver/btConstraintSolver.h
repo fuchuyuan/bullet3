@@ -36,6 +36,7 @@ enum btConstraintSolverType
 	BT_NNCG_SOLVER = 4,
 	BT_MULTIBODY_SOLVER = 8,
 	BT_BLOCK_SOLVER = 16,
+    BT_SUBSTEP_SOLVER = 32,
 };
 
 class btConstraintSolver

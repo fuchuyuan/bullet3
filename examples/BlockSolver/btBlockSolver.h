@@ -18,6 +18,8 @@ enum BlockSolverOptions
 
 	BLOCK_SOLVER_SCENE_MB_STACK = 1 << 5,
 	BLOCK_SOLVER_SCENE_CHAIN = 1 << 6,
+    
+    BLOCK_SUBSTEP_SOLVER = 1<<7,
 };
 
 class btBlockSolver : public btMultiBodyConstraintSolver

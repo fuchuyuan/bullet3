@@ -168,7 +168,8 @@ static ExampleEntry gDefaultExamples[] =
 		ExampleEntry(1, "Stack MultiBody MLCP PGS", "Create a stack of blocks, with heavy block at the top", BlockSolverExampleCreateFunc, BLOCK_SOLVER_SCENE_MB_STACK + BLOCK_SOLVER_MLCP_PGS),
 		ExampleEntry(1, "Stack MultiBody MLCP Dantzig", "Create a stack of blocks, with heavy block at the top", BlockSolverExampleCreateFunc, BLOCK_SOLVER_SCENE_MB_STACK + BLOCK_SOLVER_MLCP_DANTZIG),
 		ExampleEntry(1, "Stack MultiBody Block", "Create a stack of blocks, with heavy block at the top", BlockSolverExampleCreateFunc, BLOCK_SOLVER_SCENE_MB_STACK + BLOCK_SOLVER_BLOCK),
-		//ExampleEntry(1, "Stack RigidBody SI", "Create a stack of blocks, with heavy block at the top", RigidBodyBoxesCreateFunc, BLOCK_SOLVER_SI),
+		ExampleEntry(1, "Stack RigidBody SI", "Create a stack of blocks, with heavy block at the top", RigidBodyBoxesCreateFunc, BLOCK_SOLVER_SI),
+		ExampleEntry(1, "Stack RigidBody substep", "Create a stack of blocks, with heavy block at the top", RigidBodyBoxesCreateFunc, BLOCK_SUBSTEP_SOLVER),
 		//ExampleEntry(1, "Stack RigidBody Block", "Create a stack of blocks, with heavy block at the top", RigidBodyBoxesCreateFunc, BLOCK_SOLVER_BLOCK),
 
 		ExampleEntry(0, "Inverse Dynamics"),
