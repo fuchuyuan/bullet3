@@ -3,6 +3,7 @@
 #include "../CommonInterfaces/CommonRigidBodyBase.h"
 #include "BlockSolverExample.h"
 #include "btBlockSolver.h"
+#include "btSubstepSolver.h"
 
 class RigidBodyBoxes : public CommonRigidBodyBase
 {
@@ -33,13 +34,13 @@ public:
 	void createRigidBodyStack();
 };
 
-btScalar RigidBodyBoxes::numSolverIterations = 50;
+btScalar RigidBodyBoxes::numSolverIterations = 1;
 
 RigidBodyBoxes::RigidBodyBoxes(GUIHelperInterface* helper, int option)
 	: CommonRigidBodyBase(helper),
 	  m_option(option),
 	  m_numIterations(numSolverIterations),
-	  m_numBoxes(4)
+	  m_numBoxes(1)
 {
 	m_guiHelper->setUpAxis(2);
 }
@@ -66,15 +67,16 @@ void RigidBodyBoxes::createRigidBodyStack()
 	mass = 1;
 	for (int i = 0; i < m_numBoxes; i++)
 	{
-		btBoxShape* boxShape =
-			createBoxShape(btVector3(btScalar(.1), btScalar(.1), btScalar(.1)));
+//        btBoxShape* boxShape =
+//            createBoxShape(btVector3(btScalar(.1), btScalar(.1), btScalar(.1)));
+        btSphereShape* boxShape = new btSphereShape(btScalar(.1));
 		m_collisionShapes.push_back(boxShape);
-		mass *= 4;
+		mass *= 10;
 		btTransform tr;
 		tr.setIdentity();
-		tr.setOrigin(btVector3(0, 0, 0.1 + i * 0.2));
 		boxes.push_back(createRigidBody(mass, tr, boxShape));
 	}
+    resetCubePosition();
 }
 
 void RigidBodyBoxes::initPhysics()
@@ -89,7 +91,7 @@ void RigidBodyBoxes::initPhysics()
 
 	{
 		SliderParams slider("numSolverIterations", &numSolverIterations);
-		slider.m_minVal = 5;
+		slider.m_minVal = 1;
 		slider.m_maxVal = 500;
 		m_guiHelper->getParameterInterface()->registerSliderFloatParameter(slider);
 	}
@@ -104,12 +106,17 @@ void RigidBodyBoxes::initPhysics()
 		m_solver = new btBlockSolver();
 		b3Printf("Constraint Solver: Block solver");
 	}
-
+	if (m_option & BLOCK_SUBSTEP_SOLVER)
+	{
+        m_solver = new btSubstepSolver();
+//        m_solver = new btSequentialImpulseConstraintSolver;
+		b3Printf("Constraint Solver: small timestep");
+	}
 	btAssert(m_solver);
 
 	m_dynamicsWorld = new btDiscreteDynamicsWorld(
 		m_dispatcher, m_broadphase, m_solver, m_collisionConfiguration);
-	m_dynamicsWorld->setGravity(btVector3(0, 0, -10));
+	m_dynamicsWorld->setGravity(btVector3(0, 0, 0));
 
 	createRigidBodyStack();
 
@@ -126,8 +133,10 @@ void RigidBodyBoxes::resetCubePosition()
 	{
 		btTransform tr;
 		tr.setIdentity();
-		tr.setOrigin(btVector3(0, 0, 0.1 + i * 0.2));
+		tr.setOrigin(btVector3(0, 0, 0.3 + i * 0.2));
 		boxes[i]->setWorldTransform(tr);
+        btVector3 baseLinVel(0, 0, -1);
+        boxes[i]->setLinearVelocity(baseLinVel);
 	}
 }
 
@@ -140,8 +149,12 @@ void RigidBodyBoxes::stepSimulation(float deltaTime)
 		m_dynamicsWorld->getSolverInfo().m_numIterations = m_numIterations;
 		b3Printf("New num iterations; %d", m_numIterations);
 	}
-
-	m_dynamicsWorld->stepSimulation(deltaTime);
+    
+    double dt = .02;
+//    int maxsubsteps = 0;
+//    double fixed_dt = dt;
+m_dynamicsWorld->stepSimulation(dt);
+//    m_dynamicsWorld->stepSimulation(dt, maxsubsteps, fixed_dt);
 }
 
 CommonExampleInterface* RigidBodyBoxesCreateFunc(
