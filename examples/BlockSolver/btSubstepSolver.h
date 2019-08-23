@@ -50,6 +50,8 @@ class btSubstepSolver : public btMultiBodyConstraintSolver {
   virtual btConstraintSolverType getSolverType() const {
     return BT_SUBSTEP_SOLVER;
   }
+  
+ void writeBackBodiesInternal(btAlignedObjectArray<btSolverBody>& tmpSolverBodyPool, int iBegin, int iEnd);
   void setupHelper(btSISolverSingleIterationData& siData,
                  btCollisionObject** bodies, int numBodies,
                  const btContactSolverInfo& info,

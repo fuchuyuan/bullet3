@@ -12,6 +12,7 @@ class RigidBodyBoxes : public CommonRigidBodyBase
 	int m_numBoxes;
 	btAlignedObjectArray<btRigidBody*> boxes;
 	static btScalar numSolverIterations;
+    btScalar m_timeElapsed;
 
 public:
 	RigidBodyBoxes(GUIHelperInterface* helper, int option);
@@ -39,8 +40,9 @@ btScalar RigidBodyBoxes::numSolverIterations = 1;
 RigidBodyBoxes::RigidBodyBoxes(GUIHelperInterface* helper, int option)
 	: CommonRigidBodyBase(helper),
 	  m_option(option),
-	  m_numIterations(numSolverIterations),
-	  m_numBoxes(1)
+	  m_numBoxes(2),
+      m_numIterations(numSolverIterations),
+      m_timeElapsed(0)
 {
 	m_guiHelper->setUpAxis(2);
 }
@@ -71,7 +73,7 @@ void RigidBodyBoxes::createRigidBodyStack()
 //            createBoxShape(btVector3(btScalar(.1), btScalar(.1), btScalar(.1)));
         btSphereShape* boxShape = new btSphereShape(btScalar(.1));
 		m_collisionShapes.push_back(boxShape);
-		mass *= 10;
+		if(i==m_numBoxes-1) mass = 100;
 		btTransform tr;
 		tr.setIdentity();
 		boxes.push_back(createRigidBody(mass, tr, boxShape));
@@ -92,7 +94,7 @@ void RigidBodyBoxes::initPhysics()
 	{
 		SliderParams slider("numSolverIterations", &numSolverIterations);
 		slider.m_minVal = 1;
-		slider.m_maxVal = 500;
+		slider.m_maxVal = 50;
 		m_guiHelper->getParameterInterface()->registerSliderFloatParameter(slider);
 	}
 
@@ -116,7 +118,7 @@ void RigidBodyBoxes::initPhysics()
 
 	m_dynamicsWorld = new btDiscreteDynamicsWorld(
 		m_dispatcher, m_broadphase, m_solver, m_collisionConfiguration);
-	m_dynamicsWorld->setGravity(btVector3(0, 0, 0));
+	m_dynamicsWorld->setGravity(btVector3(0, 0, -1));
 
 	createRigidBodyStack();
 
@@ -135,7 +137,7 @@ void RigidBodyBoxes::resetCubePosition()
 		tr.setIdentity();
 		tr.setOrigin(btVector3(0, 0, 0.3 + i * 0.2));
 		boxes[i]->setWorldTransform(tr);
-        btVector3 baseLinVel(0, 0, -1);
+        btVector3 baseLinVel(0, 0, 0);
         boxes[i]->setLinearVelocity(baseLinVel);
 	}
 }
@@ -148,12 +150,16 @@ void RigidBodyBoxes::stepSimulation(float deltaTime)
 		m_numIterations = (int)numSolverIterations;
 		m_dynamicsWorld->getSolverInfo().m_numIterations = m_numIterations;
 		b3Printf("New num iterations; %d", m_numIterations);
+        m_timeElapsed=0;
 	}
-    
     double dt = .02;
 //    int maxsubsteps = 0;
 //    double fixed_dt = dt;
-m_dynamicsWorld->stepSimulation(dt);
+    m_dynamicsWorld->stepSimulation(dt);
+        m_timeElapsed +=dt;
+    btVector3 pos = boxes[0]->getCenterOfMassPosition();
+    if(m_timeElapsed<0.16)
+    printf("time: %f, pos: %f %f %f \n", m_timeElapsed, pos[0], pos[1], pos[2]);
 //    m_dynamicsWorld->stepSimulation(dt, maxsubsteps, fixed_dt);
 }
 
