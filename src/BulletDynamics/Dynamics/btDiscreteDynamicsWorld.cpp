@@ -483,7 +483,8 @@ void btDiscreteDynamicsWorld::internalSingleStepSimulation(btScalar timeStep)
 
 	///integrate transforms
 
-	integrateTransforms(timeStep);
+	if(getConstraintSolver()->getSolverType()!=BT_SUBSTEP_SOLVER)
+        integrateTransforms(timeStep);
 
 	///update vehicle simulation
 	updateActions(timeStep);

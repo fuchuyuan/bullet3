@@ -871,6 +871,8 @@ void btSISolverSingleIterationData::initSolverBody(btSolverBody * solverBody, bt
 		solverBody->m_angularVelocity = rb->getAngularVelocity();
 		solverBody->m_externalForceImpulse = rb->getTotalForce() * rb->getInvMass() * timeStep;
 		solverBody->m_externalTorqueImpulse = rb->getTotalTorque() * rb->getInvInertiaTensorWorld() * timeStep;
+        solverBody->m_deltaLinVelDt.setValue(0, 0, 0);
+        solverBody->m_deltaAngVelDt.setValue(0, 0, 0);
 	}
 	else
 	{
@@ -883,6 +885,8 @@ void btSISolverSingleIterationData::initSolverBody(btSolverBody * solverBody, bt
 		solverBody->m_angularVelocity.setValue(0, 0, 0);
 		solverBody->m_externalForceImpulse.setValue(0, 0, 0);
 		solverBody->m_externalTorqueImpulse.setValue(0, 0, 0);
+        solverBody->m_deltaLinVelDt.setValue(0, 0, 0);
+        solverBody->m_deltaAngVelDt.setValue(0, 0, 0);
 	}
 }
 

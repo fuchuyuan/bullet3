@@ -116,6 +116,8 @@ btSolverBody
 	btVector3 m_angularVelocity;
 	btVector3 m_externalForceImpulse;
 	btVector3 m_externalTorqueImpulse;
+    btVector3 m_deltaLinVelDt;
+    btVector3 m_deltaAngVelDt;
 
 	btRigidBody* m_originalBody;
 	void setWorldTransform(const btTransform& worldTransform)

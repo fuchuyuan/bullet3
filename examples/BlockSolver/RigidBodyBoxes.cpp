@@ -35,7 +35,7 @@ public:
 	void createRigidBodyStack();
 };
 
-btScalar RigidBodyBoxes::numSolverIterations = 1;
+btScalar RigidBodyBoxes::numSolverIterations = 4;
 
 RigidBodyBoxes::RigidBodyBoxes(GUIHelperInterface* helper, int option)
 	: CommonRigidBodyBase(helper),
@@ -94,7 +94,7 @@ void RigidBodyBoxes::initPhysics()
 	{
 		SliderParams slider("numSolverIterations", &numSolverIterations);
 		slider.m_minVal = 1;
-		slider.m_maxVal = 50;
+		slider.m_maxVal = 30;
 		m_guiHelper->getParameterInterface()->registerSliderFloatParameter(slider);
 	}
 
@@ -158,7 +158,7 @@ void RigidBodyBoxes::stepSimulation(float deltaTime)
     m_dynamicsWorld->stepSimulation(dt);
         m_timeElapsed +=dt;
     btVector3 pos = boxes[0]->getCenterOfMassPosition();
-    if(m_timeElapsed<0.16)
+    if(m_timeElapsed<1.6)
     printf("time: %f, pos: %f %f %f \n", m_timeElapsed, pos[0], pos[1], pos[2]);
 //    m_dynamicsWorld->stepSimulation(dt, maxsubsteps, fixed_dt);
 }

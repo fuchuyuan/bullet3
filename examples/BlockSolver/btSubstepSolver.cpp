@@ -9,13 +9,21 @@
 btScalar gResolveSingleConstraintSubstepRowLowerLimit_scalar_reference(btSolverBody& bodyA, btSolverBody& bodyB, const btSolverConstraint& c)
 {
 //    printf("calling new solver");
-    // re-calculate rhs
     btScalar vel1Dotn = c.m_contactNormal1.dot(bodyA.m_linearVelocity) + c.m_relpos1CrossNormal.dot(bodyA.m_angularVelocity);
     btScalar vel2Dotn = c.m_contactNormal2.dot(bodyB.m_linearVelocity) + c.m_relpos2CrossNormal.dot(bodyB.m_angularVelocity);
-    btScalar rel_vel = vel1Dotn + vel2Dotn;
-    btScalar deltaImpulse = c.m_rhs-rel_vel*c.m_jacDiagABInv;
-//     btScalar deltaImpulse = -rel_vel*c.m_jacDiagABInv;
+    btScalar normalVel = vel1Dotn + vel2Dotn;
+    
+    btScalar relLinMotion1 = c.m_contactNormal1.dot(bodyA.m_deltaLinVelDt) + c.m_relpos1CrossNormal.dot(bodyA.m_deltaAngVelDt);
+    btScalar relLinMotion2 = c.m_contactNormal2.dot(bodyB.m_deltaLinVelDt) + c.m_relpos2CrossNormal.dot(bodyB.m_deltaAngVelDt);
+    btScalar deltaV = relLinMotion1 + relLinMotion2;
+    btScalar bias = (c.m_rhs + deltaV)*.8;
+    
+    if(bias>1) bias = 1;
+    
+    btScalar deltaImpulse =(bias - normalVel)*c.m_jacDiagABInv;
+    
     const btScalar sum = btScalar(c.m_appliedImpulse) + deltaImpulse;
+    
     if (sum < c.m_lowerLimit)
     {
         deltaImpulse = c.m_lowerLimit - c.m_appliedImpulse;
@@ -30,24 +38,27 @@ btScalar gResolveSingleConstraintSubstepRowLowerLimit_scalar_reference(btSolverB
     return deltaImpulse * (1. / c.m_jacDiagABInv);
 }
 
-void updateRHS(btSISolverSingleIterationData& siData, int numPoolConstraints, btScalar stepDt){
+void updateRHS(btSISolverSingleIterationData& siData, int numPoolConstraints, btScalar invStepDt){
     for (int j = 0; j < numPoolConstraints; j++)
     {
         btSolverConstraint& c = siData.m_tmpSolverContactConstraintPool[siData.m_orderTmpConstraintPool[j]];
-        btSolverBody& bodyA = siData.m_tmpSolverBodyPool[c.m_solverBodyIdA];
-        btSolverBody& bodyB = siData.m_tmpSolverBodyPool[c.m_solverBodyIdB];
-        c.m_rhs = c.m_contactNormal1.dot(bodyA.m_linearVelocity) + c.m_relpos1CrossNormal.dot(bodyA.m_angularVelocity)
-                + c.m_contactNormal2.dot(bodyB.m_linearVelocity) + c.m_relpos2CrossNormal.dot(bodyB.m_angularVelocity);
-//        c.m_rhs*=stepDt;
-        //todo: add in initial penetration
-        c.m_rhs *= -0.2;
-//        if(c.m_rhs<0) c.m_rhs=0;
-        
-        //    const btScalar deltaVel1Dotn = c.m_contactNormal1.dot(bodyA.getDeltaLinearVelocityDt()) + c.m_relpos1CrossNormal.dot(bodyA.getDeltaAngularVelocityDt());
-        //    const btScalar deltaVel2Dotn = c.m_contactNormal2.dot(bodyB.getDeltaLinearVelocityDt()) + c.m_relpos2CrossNormal.dot(bodyB.getDeltaAngularVelocityDt());
+        btManifoldPoint* pt = static_cast<btManifoldPoint*>(c.m_originalContactPoint);
+        btScalar penetration = pt->getDistance() /* + 1e-5*/;
+        if(penetration<0)
+          c.m_rhs = -penetration*invStepDt;
+        else
+          c.m_rhs=0;
     }
 }
 
+
+void updateDeltaVel(btAlignedObjectArray<btSolverBody>& tmpSolverBodyPool, int iBegin, int iEnd){
+    for (int i = iBegin; i < iEnd; i++)
+    {
+        tmpSolverBodyPool[i].m_deltaLinVelDt += tmpSolverBodyPool[i].m_linearVelocity;
+        tmpSolverBodyPool[i].m_deltaAngVelDt += tmpSolverBodyPool[i].m_angularVelocity;
+    }
+}
 void writeBack(btSISolverSingleIterationData& siData, btCollisionObject** bodies, int numBodies, const btContactSolverInfo& infoGlobal){
     btSequentialImpulseConstraintSolver::writeBackJointsInternal(siData.m_tmpSolverNonContactConstraintPool, 0, siData.m_tmpSolverNonContactConstraintPool.size(), infoGlobal);
     btSequentialImpulseConstraintSolver::writeBackBodiesInternal(siData.m_tmpSolverBodyPool, 0, siData.m_tmpSolverBodyPool.size(), infoGlobal);
@@ -67,8 +78,6 @@ void btSubstepSolver::writeBackBodiesInternal(btAlignedObjectArray<btSolverBody>
     }
 }
 
-
-
 void resetData(btSISolverSingleIterationData& siData){
     siData.m_tmpSolverContactConstraintPool.resizeNoInitialize(0);
     siData.m_tmpSolverNonContactConstraintPool.resizeNoInitialize(0);
@@ -77,6 +86,38 @@ void resetData(btSISolverSingleIterationData& siData){
     
     siData.m_tmpSolverBodyPool.resizeNoInitialize(0);
 }
+
+void copyDataToSolverBody(btSolverBody * solverBody, btCollisionObject * collisionObject)
+{
+    btRigidBody* rb = collisionObject ? btRigidBody::upcast(collisionObject) : 0;
+    
+    solverBody->internalGetDeltaLinearVelocity().setValue(0.f, 0.f, 0.f);
+    solverBody->internalGetDeltaAngularVelocity().setValue(0.f, 0.f, 0.f);
+    solverBody->internalGetPushVelocity().setValue(0.f, 0.f, 0.f);
+    solverBody->internalGetTurnVelocity().setValue(0.f, 0.f, 0.f);
+    
+    if (rb)
+    {
+        solverBody->m_worldTransform = rb->getWorldTransform();
+        solverBody->internalSetInvMass(btVector3(rb->getInvMass(), rb->getInvMass(), rb->getInvMass()) * rb->getLinearFactor());
+        solverBody->m_originalBody = rb;
+        solverBody->m_angularFactor = rb->getAngularFactor();
+        solverBody->m_linearFactor = rb->getLinearFactor();
+        solverBody->m_linearVelocity = rb->getLinearVelocity();
+        solverBody->m_angularVelocity = rb->getAngularVelocity();
+    }
+    else
+    {
+        solverBody->m_worldTransform.setIdentity();
+        solverBody->internalSetInvMass(btVector3(0, 0, 0));
+        solverBody->m_originalBody = 0;
+        solverBody->m_angularFactor.setValue(1, 1, 1);
+        solverBody->m_linearFactor.setValue(1, 1, 1);
+        solverBody->m_linearVelocity.setValue(0, 0, 0);
+        solverBody->m_angularVelocity.setValue(0, 0, 0);
+    }
+}
+
 
 struct btSubstepSolverInternalData
 {
@@ -192,7 +233,7 @@ btScalar btSubstepSolver::solveGroup(btCollisionObject** bodies, int numBodies,
 //                                                           dispatcher);
 }
 
-void addExternalforceToVelcity(btAlignedObjectArray<btSolverBody>& tmpSolverBodyPool, int iBegin, int iEnd)
+void addExternalforceToVelcityAndInitializeDelta(btAlignedObjectArray<btSolverBody>& tmpSolverBodyPool, int iBegin, int iEnd)
 {
     for (int i = iBegin; i < iEnd; i++)
     {
@@ -205,6 +246,8 @@ void addExternalforceToVelcity(btAlignedObjectArray<btSolverBody>& tmpSolverBody
             tmpSolverBodyPool[i].m_originalBody->setAngularVelocity(
                                                                     tmpSolverBodyPool[i].m_angularVelocity +
                                                                     tmpSolverBodyPool[i].m_externalTorqueImpulse);
+           tmpSolverBodyPool[i].m_deltaLinVelDt.setValue(0, 0, 0);
+           tmpSolverBodyPool[i].m_deltaAngVelDt.setValue(0, 0, 0);
         }
     }
 }
@@ -238,10 +281,12 @@ btScalar btSubstepSolver::solveGroupInternal(
         setupHelper(siData, bodies, numBodies, info, constraints, numConstraints,
                                 manifoldPtr, numManifolds);
 
-        addExternalforceToVelcity(siData.m_tmpSolverBodyPool, 0, numBodies);
+        // add external force to rigidbody velocity
+        addExternalforceToVelcityAndInitializeDelta(siData.m_tmpSolverBodyPool, 0, numBodies);
 //        writeBackBodiesInternal(siData.m_tmpSolverBodyPool, 0, siData.m_tmpSolverBodyPool.size());
     
-        btScalar stepDt =info.m_timeStep/maxIterations;
+        btScalar stepDt = info.m_timeStep/maxIterations;
+        btScalar invStepDt = 1/info.m_timeStep*maxIterations;
         btScalar leastSquaresResidual = 0;
         {
                 BT_PROFILE("solveGroupCacheFriendlyIterations");
@@ -250,7 +295,9 @@ btScalar btSubstepSolver::solveGroupInternal(
                 //        solveGroupCacheFriendlySplitImpulseIterationsInternal(
                 //            siData, bodies, numBodies, manifoldPtr, numManifolds, constraints,
                 //            numConstraints, info, debugDrawer);
-
+            
+            //hack into updating rhs with penetration
+            updateRHS(siData, siData.m_tmpSolverContactConstraintPool.size(), 1/info.m_timeStep);
             //todo: only update solverbody vel in the iterations
             //      avoid write back to velocity
                 btTransform predictedTrans;
@@ -263,15 +310,10 @@ btScalar btSubstepSolver::solveGroupInternal(
                             if (body){
                                 //write rigidbody data to solverbody
                                 //set vel, angVel
-                                //dt is only used for external force, so it doesn't matter here
-                                btSISolverSingleIterationData::initSolverBody(&siData.m_tmpSolverBodyPool[i], body, info.m_timeStep);
-                                //update rel position
+                                copyDataToSolverBody(&siData.m_tmpSolverBodyPool[i], body);
                             }
-                            
                         }
                         //solve using updated single row solver
-                    //hack into updating rhs with modified position
-                    updateRHS(siData, siData.m_tmpSolverContactConstraintPool.size(), stepDt);
                         leastSquaresResidual =
                                 btSequentialImpulseConstraintSolver::solveSingleIterationInternal(
                                         siData, iteration, constraints, numConstraints, info);
@@ -279,8 +321,8 @@ btScalar btSubstepSolver::solveGroupInternal(
 
                         // update dv to v
                         // write back velocity from solver body to rigidbody
-//                        writeBack(siData, bodies, numBodies, info);
                       writeBackBodiesInternal(siData.m_tmpSolverBodyPool, 0, siData.m_tmpSolverBodyPool.size());
+                      updateDeltaVel(siData.m_tmpSolverBodyPool, 0, siData.m_tmpSolverBodyPool.size());
                         // use solved velocity to integrate
                         for (int i = 0; i < numBodies; i++)
                         {
