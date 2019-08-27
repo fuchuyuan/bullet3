@@ -16,12 +16,12 @@ btScalar gResolveSingleConstraintSubstepRowLowerLimit_scalar_reference(btSolverB
     btScalar relLinMotion1 = c.m_contactNormal1.dot(bodyA.m_deltaLinVelDt) + c.m_relpos1CrossNormal.dot(bodyA.m_deltaAngVelDt);
     btScalar relLinMotion2 = c.m_contactNormal2.dot(bodyB.m_deltaLinVelDt) + c.m_relpos2CrossNormal.dot(bodyB.m_deltaAngVelDt);
     btScalar deltaV = relLinMotion1 + relLinMotion2;
-    btScalar bias = (c.m_rhs + deltaV)*.8;
+    btScalar bias = -(c.m_rhs + deltaV)*.8;
     
-    if(bias>1) bias = 1;
+//    if(bias<=0) bias = 0;
+    if(bias > .1) bias = .1;
     
     btScalar deltaImpulse =(bias - normalVel)*c.m_jacDiagABInv;
-    
     const btScalar sum = btScalar(c.m_appliedImpulse) + deltaImpulse;
     
     if (sum < c.m_lowerLimit)
@@ -35,7 +35,25 @@ btScalar gResolveSingleConstraintSubstepRowLowerLimit_scalar_reference(btSolverB
     }
     bodyA.internalApplyImpulse(c.m_contactNormal1 * bodyA.internalGetInvMass(), c.m_angularComponentA, deltaImpulse);
     bodyB.internalApplyImpulse(c.m_contactNormal2 * bodyB.internalGetInvMass(), c.m_angularComponentB, deltaImpulse);
+    bodyA.writebackVelocity();
+    bodyB.writebackVelocity();
     return deltaImpulse * (1. / c.m_jacDiagABInv);
+}
+
+void solveVelocity(btSolverBody& bodyA, btSolverBody& bodyB, const btSolverConstraint& c)
+{
+    btScalar vel1Dotn = c.m_contactNormal1.dot(bodyA.m_linearVelocity) + c.m_relpos1CrossNormal.dot(bodyA.m_angularVelocity);
+    btScalar vel2Dotn = c.m_contactNormal2.dot(bodyB.m_linearVelocity) + c.m_relpos2CrossNormal.dot(bodyB.m_angularVelocity);
+    btScalar normalVel = vel1Dotn + vel2Dotn;
+    
+    btScalar relLinMotion1 = c.m_contactNormal1.dot(bodyA.m_deltaLinVelDt) + c.m_relpos1CrossNormal.dot(bodyA.m_deltaAngVelDt);
+    btScalar relLinMotion2 = c.m_contactNormal2.dot(bodyB.m_deltaLinVelDt) + c.m_relpos2CrossNormal.dot(bodyB.m_deltaAngVelDt);
+    btScalar deltaV = relLinMotion1 + relLinMotion2;
+    btScalar bias = (c.m_rhs + deltaV)*.8;
+    
+    if(bias<0) bias = 0;
+    
+    btScalar deltaImpulse =(bias - normalVel)*c.m_jacDiagABInv;
 }
 
 void updateRHS(btSISolverSingleIterationData& siData, int numPoolConstraints, btScalar invStepDt){
@@ -44,10 +62,11 @@ void updateRHS(btSISolverSingleIterationData& siData, int numPoolConstraints, bt
         btSolverConstraint& c = siData.m_tmpSolverContactConstraintPool[siData.m_orderTmpConstraintPool[j]];
         btManifoldPoint* pt = static_cast<btManifoldPoint*>(c.m_originalContactPoint);
         btScalar penetration = pt->getDistance() /* + 1e-5*/;
-        if(penetration<0)
-          c.m_rhs = -penetration*invStepDt;
-        else
-          c.m_rhs=0;
+//        if(penetration<0)
+//          c.m_rhs = -penetration*invStepDt;
+//        else
+        //negative if penetration
+          c.m_rhs= penetration*invStepDt;
     }
 }
 
@@ -71,7 +90,7 @@ void btSubstepSolver::writeBackBodiesInternal(btAlignedObjectArray<btSolverBody>
         btRigidBody* body = tmpSolverBodyPool[i].m_originalBody;
         if (body)
         {
-            tmpSolverBodyPool[i].writebackVelocity();
+//            tmpSolverBodyPool[i].writebackVelocity();
             tmpSolverBodyPool[i].m_originalBody->setLinearVelocity(tmpSolverBodyPool[i].m_linearVelocity);
             tmpSolverBodyPool[i].m_originalBody->setAngularVelocity(tmpSolverBodyPool[i].m_angularVelocity);
         }
