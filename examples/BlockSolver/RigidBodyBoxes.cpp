@@ -40,7 +40,7 @@ btScalar RigidBodyBoxes::numSolverIterations = 4;
 RigidBodyBoxes::RigidBodyBoxes(GUIHelperInterface* helper, int option)
 	: CommonRigidBodyBase(helper),
 	  m_option(option),
-	  m_numBoxes(20),
+	  m_numBoxes(4),
       m_numIterations(numSolverIterations),
       m_timeElapsed(0)
 {
@@ -69,8 +69,7 @@ void RigidBodyBoxes::createRigidBodyStack()
 	mass = 1;
 	for (int i = 0; i < m_numBoxes; i++)
 	{
-//        btBoxShape* boxShape =
-//            createBoxShape(btVector3(btScalar(.1), btScalar(.1), btScalar(.1)));
+//        btBoxShape* boxShape = createBoxShape(btVector3(btScalar(.1), btScalar(.1), btScalar(.1)));
         btSphereShape* boxShape = new btSphereShape(btScalar(.1));
 		m_collisionShapes.push_back(boxShape);
         if(i==m_numBoxes-1) mass = 10;
