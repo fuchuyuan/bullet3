@@ -1979,6 +1979,7 @@ btScalar btSequentialImpulseConstraintSolver::solveSingleIterationInternal(btSIS
 	int numNonContactPool = siData.m_tmpSolverNonContactConstraintPool.size();
 	int numConstraintPool = siData.m_tmpSolverContactConstraintPool.size();
 	int numFrictionPool = siData.m_tmpSolverContactFrictionConstraintPool.size();
+    numFrictionPool = 0;
 
 	if (infoGlobal.m_solverMode & SOLVER_RANDMIZE_ORDER)
 	{
@@ -2103,7 +2104,7 @@ btScalar btSequentialImpulseConstraintSolver::solveSingleIterationInternal(btSIS
 
 			///solve all friction constraints
 
-			int numFrictionPoolConstraints = siData.m_tmpSolverContactFrictionConstraintPool.size();
+            int numFrictionPoolConstraints = 0;//siData.m_tmpSolverContactFrictionConstraintPool.size();
 			for (j = 0; j < numFrictionPoolConstraints; j++)
 			{
 				btSolverConstraint& solveManifold = siData.m_tmpSolverContactFrictionConstraintPool[siData.m_orderFrictionConstraintPool[j]];

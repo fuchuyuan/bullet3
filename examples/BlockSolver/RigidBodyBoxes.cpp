@@ -40,7 +40,7 @@ btScalar RigidBodyBoxes::numSolverIterations = 4;
 RigidBodyBoxes::RigidBodyBoxes(GUIHelperInterface* helper, int option)
 	: CommonRigidBodyBase(helper),
 	  m_option(option),
-	  m_numBoxes(4),
+	  m_numBoxes(20),
       m_numIterations(numSolverIterations),
       m_timeElapsed(0)
 {
@@ -76,7 +76,9 @@ void RigidBodyBoxes::createRigidBodyStack()
         if(i==m_numBoxes-1) mass = 10;
 		btTransform tr;
 		tr.setIdentity();
-		boxes.push_back(createRigidBody(mass, tr, boxShape));
+        btRigidBody* box = createRigidBody(mass, tr, boxShape);
+        box->setSleepingThresholds(0, 0);
+		boxes.push_back(box);
 	}
     resetCubePosition();
 }
@@ -135,7 +137,7 @@ void RigidBodyBoxes::resetCubePosition()
 	{
 		btTransform tr;
 		tr.setIdentity();
-		tr.setOrigin(btVector3(0, 0, 0.3 + i * 0.2));
+		tr.setOrigin(btVector3(0, 0, 0.1 + i * 0.2));
 		boxes[i]->setWorldTransform(tr);
         btVector3 baseLinVel(0, 0, 0);
         boxes[i]->setLinearVelocity(baseLinVel);
@@ -158,8 +160,8 @@ void RigidBodyBoxes::stepSimulation(float deltaTime)
     m_dynamicsWorld->stepSimulation(dt);
         m_timeElapsed +=dt;
     btVector3 pos = boxes[0]->getCenterOfMassPosition();
-    if(m_timeElapsed<1.6)
-    printf("time: %f, pos: %f %f %f \n", m_timeElapsed, pos[0], pos[1], pos[2]);
+//    if(m_timeElapsed<1.6)
+//    printf("time: %f, pos: %f %f %f \n", m_timeElapsed, pos[0], pos[1], pos[2]);
 //    m_dynamicsWorld->stepSimulation(dt, maxsubsteps, fixed_dt);
 }
 
