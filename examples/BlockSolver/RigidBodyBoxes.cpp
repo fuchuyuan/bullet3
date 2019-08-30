@@ -40,7 +40,7 @@ btScalar RigidBodyBoxes::numSolverIterations = 4;
 RigidBodyBoxes::RigidBodyBoxes(GUIHelperInterface* helper, int option)
 	: CommonRigidBodyBase(helper),
 	  m_option(option),
-	  m_numBoxes(4),
+	  m_numBoxes(3),
       m_numIterations(numSolverIterations),
       m_timeElapsed(0)
 {
@@ -72,11 +72,12 @@ void RigidBodyBoxes::createRigidBodyStack()
 //        btBoxShape* boxShape = createBoxShape(btVector3(btScalar(.1), btScalar(.1), btScalar(.1)));
         btSphereShape* boxShape = new btSphereShape(btScalar(.1));
 		m_collisionShapes.push_back(boxShape);
-        if(i==m_numBoxes-1) mass = 10;
+        if(i==m_numBoxes-1) mass = 20;
 		btTransform tr;
 		tr.setIdentity();
         btRigidBody* box = createRigidBody(mass, tr, boxShape);
         box->setSleepingThresholds(0, 0);
+        box->setFriction(0);
 		boxes.push_back(box);
 	}
     resetCubePosition();
@@ -136,7 +137,7 @@ void RigidBodyBoxes::resetCubePosition()
 	{
 		btTransform tr;
 		tr.setIdentity();
-		tr.setOrigin(btVector3(0, 0, 0.1 + i * 0.2));
+		tr.setOrigin(btVector3(0, 0, .3 + i * 0.2));
 		boxes[i]->setWorldTransform(tr);
         btVector3 baseLinVel(0, 0, 0);
         boxes[i]->setLinearVelocity(baseLinVel);
@@ -153,15 +154,15 @@ void RigidBodyBoxes::stepSimulation(float deltaTime)
 		b3Printf("New num iterations; %d", m_numIterations);
         m_timeElapsed=0;
 	}
-    double dt = .02;
-//    int maxsubsteps = 0;
-//    double fixed_dt = dt;
-    m_dynamicsWorld->stepSimulation(dt);
-        m_timeElapsed +=dt;
+    double dt = .1;
+    int maxsubsteps = 0;
+    double fixed_dt = dt;
+//    m_dynamicsWorld->stepSimulation(dt);
     btVector3 pos = boxes[0]->getCenterOfMassPosition();
-//    if(m_timeElapsed<1.6)
-//    printf("time: %f, pos: %f %f %f \n", m_timeElapsed, pos[0], pos[1], pos[2]);
-//    m_dynamicsWorld->stepSimulation(dt, maxsubsteps, fixed_dt);
+    if(m_timeElapsed<1.2)
+    printf("time: %f, pos: %f %f %f \n", m_timeElapsed, pos[0], pos[1], pos[2]);
+    m_dynamicsWorld->stepSimulation(dt, maxsubsteps, fixed_dt);
+    m_timeElapsed +=dt;
 }
 
 CommonExampleInterface* RigidBodyBoxesCreateFunc(
