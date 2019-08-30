@@ -72,7 +72,7 @@ void RigidBodyBoxes::createRigidBodyStack()
 //        btBoxShape* boxShape = createBoxShape(btVector3(btScalar(.1), btScalar(.1), btScalar(.1)));
         btSphereShape* boxShape = new btSphereShape(btScalar(.1));
 		m_collisionShapes.push_back(boxShape);
-        if(i==m_numBoxes-1) mass = 20;
+        if(i==m_numBoxes-1) mass = 10;
 		btTransform tr;
 		tr.setIdentity();
         btRigidBody* box = createRigidBody(mass, tr, boxShape);
@@ -125,7 +125,9 @@ void RigidBodyBoxes::initPhysics()
 	createRigidBodyStack();
 
 	m_dynamicsWorld->getSolverInfo().m_numIterations = numSolverIterations;
-	m_dynamicsWorld->getSolverInfo().m_globalCfm = btScalar(1e-6);
+    m_dynamicsWorld->getSolverInfo().m_friction=0;
+    m_dynamicsWorld->getSolverInfo().m_solverMode =0;
+    m_dynamicsWorld->getSolverInfo().m_splitImpulse=false;
 
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
 	m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
@@ -137,7 +139,7 @@ void RigidBodyBoxes::resetCubePosition()
 	{
 		btTransform tr;
 		tr.setIdentity();
-		tr.setOrigin(btVector3(0, 0, .3 + i * 0.2));
+		tr.setOrigin(btVector3(0, 0, .1 + i * 0.2));
 		boxes[i]->setWorldTransform(tr);
         btVector3 baseLinVel(0, 0, 0);
         boxes[i]->setLinearVelocity(baseLinVel);

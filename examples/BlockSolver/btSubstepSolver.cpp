@@ -246,8 +246,8 @@ btScalar btSubstepSolver::solveGroup(btCollisionObject** bodies, int numBodies,
                                                                          const btContactSolverInfo& info,
                                                                          btIDebugDraw* debugDrawer,
                                                                          btDispatcher* dispatcher)
-{
-        return solveGroupInternal(bodies, numBodies, manifoldPtr, numManifolds,
+{    
+    return solveGroupInternal(bodies, numBodies, manifoldPtr, numManifolds,
                                                           constraints, numConstraints, info, debugDrawer,
                                                           dispatcher);
 }

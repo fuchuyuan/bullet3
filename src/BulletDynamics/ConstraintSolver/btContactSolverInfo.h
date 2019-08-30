@@ -84,8 +84,7 @@ struct btContactSolverInfo : public btContactSolverInfoData
 		m_frictionERP = btScalar(0.2);  //positional friction 'anchors' are disabled by default
 		m_frictionCFM = btScalar(0.);
 		m_sor = btScalar(1.);
-//        m_splitImpulse = true;
-        m_splitImpulse = false;
+        m_splitImpulse = true;
 		m_splitImpulsePenetrationThreshold = -.04f;
 		m_splitImpulseTurnErp = 0.1f;
 		m_linearSlop = btScalar(0.0);
