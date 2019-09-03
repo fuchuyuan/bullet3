@@ -2036,7 +2036,7 @@ btScalar btSequentialImpulseConstraintSolver::solveSingleIterationInternal(btSIS
 				int bodyBid = siData.getSolverBody(constraints[j]->getRigidBodyB());
 				btSolverBody& bodyA = siData.m_tmpSolverBodyPool[bodyAid];
 				btSolverBody& bodyB = siData.m_tmpSolverBodyPool[bodyBid];
-				constraints[j]->solveConstraintObsolete(bodyA, bodyB, infoGlobal.m_timeStep);
+				constraints[j]->solveConstraintObsolete(bodyA, bodyB, infoGlobal.m_solverTimeStep);
 			}
 		}
 
