@@ -81,7 +81,7 @@ void updateRHS(btSISolverSingleIterationData& siData, int numPoolConstraints, bt
     {
         btSolverConstraint& c = siData.m_tmpSolverContactConstraintPool[siData.m_orderTmpConstraintPool[j]];
         btManifoldPoint* pt = static_cast<btManifoldPoint*>(c.m_originalContactPoint);
-        btScalar penetration = pt->getDistance() /*1e-5*/;
+        btScalar penetration = pt->getDistance() /*- 1e-5*/;
         
         c.m_rhs = -penetration*invStepDt*c.m_jacDiagABInv;
         c.m_rhsPenetration = - penetration*invStepDt*c.m_jacDiagABInv;

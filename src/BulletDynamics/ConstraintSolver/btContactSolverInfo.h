@@ -39,6 +39,7 @@ struct btContactSolverInfoData
 	btScalar m_damping;  //global non-contact constraint damping, can be locally overridden by constraints during 'getInfo2'.
 	btScalar m_friction;
 	btScalar m_timeStep;
+    btScalar m_solverTimeStep;
 	btScalar m_restitution;
 	int m_numIterations;
 	btScalar m_maxErrorReduction;
@@ -75,6 +76,7 @@ struct btContactSolverInfo : public btContactSolverInfoData
 		m_damping = btScalar(1.0);
 		m_friction = btScalar(0.3);
 		m_timeStep = btScalar(1.f / 60.f);
+        m_solverTimeStep = btScalar(1.f / 60.f);
 		m_restitution = btScalar(0.);
 		m_maxErrorReduction = btScalar(20.);
 		m_numIterations = 10;
@@ -110,6 +112,7 @@ struct btContactSolverInfoDoubleData
 	double m_damping;  //global non-contact constraint damping, can be locally overridden by constraints during 'getInfo2'.
 	double m_friction;
 	double m_timeStep;
+    double m_solverTimeStep;
 	double m_restitution;
 	double m_maxErrorReduction;
 	double m_sor;
@@ -137,6 +140,7 @@ struct btContactSolverInfoFloatData
 	float m_damping;  //global non-contact constraint damping, can be locally overridden by constraints during 'getInfo2'.
 	float m_friction;
 	float m_timeStep;
+    float m_solverTimeStep;
 
 	float m_restitution;
 	float m_maxErrorReduction;

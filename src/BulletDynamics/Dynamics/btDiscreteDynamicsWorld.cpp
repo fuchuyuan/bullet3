@@ -475,6 +475,10 @@ void btDiscreteDynamicsWorld::internalSingleStepSimulation(btScalar timeStep)
 	calculateSimulationIslands();
 
 	getSolverInfo().m_timeStep = timeStep;
+    if(getConstraintSolver()->getSolverType()!=BT_SUBSTEP_SOLVER)
+        getSolverInfo().m_solverTimeStep = timeStep;
+    else
+        getSolverInfo().m_solverTimeStep = timeStep/getSolverInfo().m_numIterations;
 
 	///solve contact and other joint constraints
 	solveConstraints(getSolverInfo());

@@ -24,7 +24,7 @@ public:
 	void resetCubePosition();
 	virtual void resetCamera()
 	{
-		float dist = 3;
+		float dist = 2;
 		float pitch = -35;
 		float yaw = 50;
 		float targetPos[3] = {0, 0, .1};
@@ -40,7 +40,7 @@ btScalar RigidBodyBoxes::numSolverIterations = 4;
 RigidBodyBoxes::RigidBodyBoxes(GUIHelperInterface* helper, int option)
 	: CommonRigidBodyBase(helper),
 	  m_option(option),
-	  m_numBoxes(3),
+	  m_numBoxes(4),
       m_numIterations(numSolverIterations),
       m_timeElapsed(0)
 {
@@ -156,7 +156,7 @@ void RigidBodyBoxes::stepSimulation(float deltaTime)
 		b3Printf("New num iterations; %d", m_numIterations);
         m_timeElapsed=0;
 	}
-    double dt = .1;
+    double dt = .01;
     int maxsubsteps = 0;
     double fixed_dt = dt;
 //    m_dynamicsWorld->stepSimulation(dt);
