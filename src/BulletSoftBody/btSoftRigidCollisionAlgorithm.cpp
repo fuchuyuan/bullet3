@@ -51,6 +51,7 @@ btSoftRigidCollisionAlgorithm::~btSoftRigidCollisionAlgorithm()
 
 void btSoftRigidCollisionAlgorithm::processCollision(const btCollisionObjectWrapper* body0Wrap, const btCollisionObjectWrapper* body1Wrap, const btDispatcherInfo& dispatchInfo, btManifoldResult* resultOut)
 {
+  BT_PROFILE("softrigid process collision");
 	(void)dispatchInfo;
 	(void)resultOut;
 	//printf("btSoftRigidCollisionAlgorithm\n");
