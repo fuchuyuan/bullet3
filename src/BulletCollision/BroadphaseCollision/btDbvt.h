@@ -374,6 +374,9 @@ struct btDbvt
 	void collideTV(const btDbvtNode* root,
 				   const btDbvtVolume& volume,
 				   DBVT_IPOLICY) const;
+  
+	DBVT_PREFIX
+	void collideSDF(DBVT_IPOLICY) const;
 
 	DBVT_PREFIX
 	void collideTVNoStackAlloc(const btDbvtNode* root,
@@ -1184,7 +1187,13 @@ inline void btDbvt::collideTV(const btDbvtNode* root,
 	}
 }
 
-//
+DBVT_PREFIX
+inline void btDbvt::collideSDF(const btDbvtNode* root, const btDbvtVolume& vol, DBVT_IPOLICY) const
+{
+	DBVT_CHECKTYPE
+	if (psb && Intersect(psb->getAABB(), sdf->getAABB())) policy.Process(psb);
+}
+
 DBVT_PREFIX
 inline void btDbvt::collideTVNoStackAlloc(const btDbvtNode* root,
 										  const btDbvtVolume& vol,

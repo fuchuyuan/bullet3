@@ -3647,47 +3647,76 @@ void btSoftBody::defaultCollisionHandler(const btCollisionObjectWrapper* pcoWrap
 			collider.ProcessColObj(this, pcoWrap);
 		}
 		break;
-        case fCollision::SDF_RD:
-        {
-            
-            btRigidBody* prb1 = (btRigidBody*)btRigidBody::upcast(pcoWrap->getCollisionObject());
-            if (pcoWrap->getCollisionObject()->isActive() || this->isActive())
-            {
-                const btTransform wtr = pcoWrap->getWorldTransform();
-//                const btTransform ctr = pcoWrap->getWorldTransform();
-//                const btScalar timemargin = (wtr.getOrigin() - ctr.getOrigin()).length();
-                const btScalar timemargin = 0;
-                const btScalar basemargin = getCollisionShape()->getMargin();
-                btVector3 mins;
-                btVector3 maxs;
-                ATTRIBUTE_ALIGNED16(btDbvtVolume)
-                volume;
-                pcoWrap->getCollisionShape()->getAabb(wtr,
-                                                      mins,
-                                                      maxs);
-                volume = btDbvtVolume::FromMM(mins, maxs);
-                volume.Expand(btVector3(basemargin, basemargin, basemargin));
-                btSoftColliders::CollideSDF_RD docollideNode;
-                docollideNode.psb = this;
-                docollideNode.m_colObj1Wrap = pcoWrap;
-                docollideNode.m_rigidBody = prb1;
-                docollideNode.dynmargin = basemargin + timemargin;
-                docollideNode.stamargin = basemargin;
-                m_ndbvt.collideTV(m_ndbvt.m_root, volume, docollideNode);
-                
-                if (this->m_useFaceContact)
-                {
-                    btSoftColliders::CollideSDF_RDF docollideFace;
-                    docollideFace.psb = this;
-                    docollideFace.m_colObj1Wrap = pcoWrap;
-                    docollideFace.m_rigidBody = prb1;
-                    docollideFace.dynmargin = basemargin + timemargin;
-                    docollideFace.stamargin = basemargin;
-                    m_fdbvt.collideTV(m_fdbvt.m_root, volume, docollideFace);
-                }
-            }
-        }
-        break;
+		case fCollision::SDF_RD:
+		{
+			// use sdf file
+			if (proWrap->getCollisionShape()->getShapeType() == SDF_SHAPE_PROXYTYPE)
+			{
+				btSdfCollisionShape* sdfShape = (btSdfCollisionShape*)proWrap->getCollisionShape();
+				if (pcoWrap->getCollisionObject()->isActive() || this->isActive())
+				{
+					const btTransform wtr = pcoWrap->getWorldTransform();
+					const btScalar timemargin = 0;
+					const btScalar basemargin = getCollisionShape()->getMargin();
+					btVector3 mins;
+					btVector3 maxs;
+					ATTRIBUTE_ALIGNED16(btDbvtVolume) volume;
+					pcoWrap->getCollisionShape()->getAabb(wtr, mins, maxs);
+					volume.Expand(btVector3(basemargin, basemargin, basemargin));
+					btSoftColliders::CollideSDF2_RD docollideNode;
+					docollideNode.psb = this;
+					docollideNode.m_colObj1Wrap = pcoWrap;
+					docollideNode.dynmargin = basemargin + timemargin;
+					docollideNode.stamargin = basemargin;
+					m_ndbvt.collideSDF(m_ndbvt.m_root, volume, docollideNode);
+					if (this->m_useFaceContact)
+					{
+						// todo
+					}
+				}
+			}
+			else
+			{
+				// compute sdf using GjkEpa and cache sdf
+				btRigidBody* prb1 = (btRigidBody*)btRigidBody::upcast(pcoWrap->getCollisionObject());
+				if (pcoWrap->getCollisionObject()->isActive() || this->isActive())
+				{
+					const btTransform wtr = pcoWrap->getWorldTransform();
+					//                const btTransform ctr = pcoWrap->getWorldTransform();
+					//                const btScalar timemargin = (wtr.getOrigin() - ctr.getOrigin()).length();
+					const btScalar timemargin = 0;
+					const btScalar basemargin = getCollisionShape()->getMargin();
+					btVector3 mins;
+					btVector3 maxs;
+					ATTRIBUTE_ALIGNED16(btDbvtVolume)
+					volume;
+					pcoWrap->getCollisionShape()->getAabb(wtr,
+														  mins,
+														  maxs);
+					volume = btDbvtVolume::FromMM(mins, maxs);
+					volume.Expand(btVector3(basemargin, basemargin, basemargin));
+					btSoftColliders::CollideSDF_RD docollideNode;
+					docollideNode.psb = this;
+					docollideNode.m_colObj1Wrap = pcoWrap;
+					docollideNode.m_rigidBody = prb1;
+					docollideNode.dynmargin = basemargin + timemargin;
+					docollideNode.stamargin = basemargin;
+					m_ndbvt.collideTV(m_ndbvt.m_root, volume, docollideNode);
+
+					if (this->m_useFaceContact)
+					{
+						btSoftColliders::CollideSDF_RDF docollideFace;
+						docollideFace.psb = this;
+						docollideFace.m_colObj1Wrap = pcoWrap;
+						docollideFace.m_rigidBody = prb1;
+						docollideFace.dynmargin = basemargin + timemargin;
+						docollideFace.stamargin = basemargin;
+						m_fdbvt.collideTV(m_fdbvt.m_root, volume, docollideFace);
+					}
+				}
+			}
+		}
+		break;
 	}
 }
 

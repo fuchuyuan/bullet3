@@ -1053,6 +1053,71 @@ struct btSoftColliders
         btScalar stamargin;
     };
 
+	struct CollideSDF2_RD : btDbvt::ICollide
+	{
+		void Process(const btDbvtNode* leaf)
+		{
+			btSoftBody::Node* node = (btSoftBody::Node*)leaf->data;
+			// Do collsion detection for each node
+			for (int i = 0; i < psb.m_nodes.size(); i++)
+				DoNode(&(m_node[i]));
+		}
+		void DoNode(btSoftBody::Node& n) const
+		{
+			if (n.m_battach) return;
+			const btScalar ima = n.m_im;
+			const btScalar imb = m_rigidBody ? m_rigidBody->getInvMass() : 0.f;
+			const btScalar ms = ima + imb;
+			if (ms <= 0) return;
+
+			btSoftBody::RContact c;
+			const btScalar m = n.m_im > 0 ? dynmargin : stamargin;
+
+			btSdfCollisionShape* sdfWrap = (btSdfCollisionShape*)proWrap->getCollisionShape();
+                        btAssert(sdfWrap);
+			btVector3 vtxInSdf = sdfWrap->getWorldTransform().invXform(n.x);
+			btVector3 normalLocal;
+			btScalar dist;
+			sdfShape->queryPoint(vtxInSdf, dist, normalLocal);
+
+			btVector3 vtxInSdf_trial = sdfWrap->getWorldTransform().invXform(n.q);
+			btVector3 normalLocal_trial;
+			btScalar dist_trial;
+			sdfShape->queryPoint(vtxInSdf_trial, dist_trial, normalLocal_trial);
+
+			// check for collision at x_{n+1}^* as well at x_n
+			if (dist < 0 || dist_trial < 0)
+			{
+				normalLocal.safeNormalize();
+				c.m_cti.m_colObj = sdfWrap->getCollisionObject();
+				c.m_cti.m_normal = sdfWrap->getWorldTransform().getBasis() * normalLocal;
+				c.m_cti.m_offset = dist;
+				btSoftBody::sCti& cti = c.m_cti;
+				c.m_node = &n;
+				const btScalar fc = psb->m_cfg.kDF * m_colObj1Wrap->getCollisionObject()->getFriction();
+				c.m_c2 = ima;
+				c.m_c3 = fc;
+				c.m_c4 = m_colObj1Wrap->getCollisionObject()->isStaticOrKinematicObject() ? psb->m_cfg.kKHR : psb->m_cfg.kCHR;
+
+				if (cti.m_colObj->getInternalType() == btCollisionObject::CO_RIGID_BODY)
+				{
+					const btTransform& wtr = m_rigidBody ? m_rigidBody->getWorldTransform() : m_colObj1Wrap->getCollisionObject()->getWorldTransform();
+					static const btMatrix3x3 iwiStatic(0, 0, 0, 0, 0, 0, 0, 0, 0);
+					const btMatrix3x3& iwi = m_rigidBody ? m_rigidBody->getInvInertiaTensorWorld() : iwiStatic;
+					const btVector3 ra = n.m_x - wtr.getOrigin();
+
+					c.m_c0 = ImpulseMatrix(1, ima, imb, iwi, ra);
+					c.m_c1 = ra;
+				}
+				psb->m_nodeRigidContacts.push_back(c);
+			}
+		}
+	btSoftBody* psb;
+	const btCollisionObjectWrapper* m_colObj1Wrap;
+	btScalar dynmargin;
+	btScalar stamargin;
+};
+
 	//
 	// CollideSDF_RD
 	//
