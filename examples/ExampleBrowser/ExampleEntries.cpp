@@ -49,6 +49,7 @@
 #include "../DeformableDemo/ClothFriction.h"
 #include "../DeformableDemo/Pinch.h"
 #include "../DeformableDemo/DeformableSelfCollision.h"
+#include "../DeformableDemo/DeformableOnRigid.h"
 #include "../DeformableDemo/PinchFriction.h"
 #include "../DeformableDemo/DeformableMultibody.h"
 #include "../DeformableDemo/VolumetricDeformable.h"
@@ -194,6 +195,7 @@ static ExampleEntry gDefaultExamples[] =
 
         ExampleEntry(0, "Deformabe Body"),
         ExampleEntry(1, "Deformable Self Collision", "Deformable Self Collision", DeformableSelfCollisionCreateFunc),
+       ExampleEntry(1, "Deformable Rigid Collision", "Deformable Rigid Collision", DeformableOnRigidCreateFunc),
         ExampleEntry(1, "Deformable-Deformable Contact", "Deformable contact", DeformableContactCreateFunc),
         ExampleEntry(1, "Cloth Friction", "Cloth friction contact", ClothFrictionCreateFunc),
         ExampleEntry(1, "Deformable-Deformable Friction Contact", "Deformable friction contact", PinchFrictionCreateFunc),
