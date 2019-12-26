@@ -83,9 +83,6 @@ public:
 	/** Process a collision between one of the world's soft bodies and another collision object */
 	virtual void processCollision(btSoftBody *, const struct btCollisionObjectWrapper *) = 0;
 
-  	/** Process a collision between one of the world's soft bodies and another collision object */
-	virtual void processCollision(btSoftBody *, const struct btCollisionObjectWrapper *) = 0;
-
 	/** Process a collision between two soft bodies */
 	virtual void processCollision(btSoftBody *, btSoftBody *) = 0;
 

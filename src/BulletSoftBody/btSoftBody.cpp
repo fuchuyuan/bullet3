@@ -3650,9 +3650,9 @@ void btSoftBody::defaultCollisionHandler(const btCollisionObjectWrapper* pcoWrap
 		case fCollision::SDF_RD:
 		{
 			// use sdf file
-			if (proWrap->getCollisionShape()->getShapeType() == SDF_SHAPE_PROXYTYPE)
+			if (pcoWrap->getCollisionShape()->getShapeType() == SDF_SHAPE_PROXYTYPE)
 			{
-				btSdfCollisionShape* sdfShape = (btSdfCollisionShape*)proWrap->getCollisionShape();
+				btSdfCollisionShape* sdfShape = (btSdfCollisionShape*)pcoWrap->getCollisionShape();
 				if (pcoWrap->getCollisionObject()->isActive() || this->isActive())
 				{
 					const btTransform wtr = pcoWrap->getWorldTransform();
@@ -3665,7 +3665,7 @@ void btSoftBody::defaultCollisionHandler(const btCollisionObjectWrapper* pcoWrap
 					volume.Expand(btVector3(basemargin, basemargin, basemargin));
 					btSoftColliders::CollideSDF2_RD docollideNode;
 					docollideNode.psb = this;
-					docollideNode.m_colObj1Wrap = pcoWrap;
+					docollideNode.pcoWrap = pcoWrap;
 					docollideNode.dynmargin = basemargin + timemargin;
 					docollideNode.stamargin = basemargin;
 					m_ndbvt.collideSDF(m_ndbvt.m_root, volume, docollideNode);

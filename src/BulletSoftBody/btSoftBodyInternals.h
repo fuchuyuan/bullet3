@@ -24,6 +24,7 @@ subject to the following restrictions:
 #include "BulletCollision/BroadphaseCollision/btBroadphaseInterface.h"
 #include "BulletCollision/CollisionDispatch/btCollisionDispatcher.h"
 #include "BulletCollision/CollisionShapes/btConvexInternalShape.h"
+#include "BulletCollision/CollisionShapes/btSdfCollisionShape.h"
 #include "BulletCollision/NarrowPhaseCollision/btGjkEpa2.h"
 #include "BulletDynamics/Featherstone/btMultiBodyLinkCollider.h"
 #include "BulletDynamics/Featherstone/btMultiBodyConstraint.h"
@@ -1059,8 +1060,8 @@ struct btSoftColliders
 		{
 			btSoftBody::Node* node = (btSoftBody::Node*)leaf->data;
 			// Do collsion detection for each node
-			for (int i = 0; i < psb.m_nodes.size(); i++)
-				DoNode(&(m_node[i]));
+			for (int i = 0; i < psb->m_nodes.size(); i++)
+				DoNode(psb->m_nodes[i]);
 		}
 		void DoNode(btSoftBody::Node& n) const
 		{
@@ -1070,17 +1071,17 @@ struct btSoftColliders
 			const btScalar ms = ima + imb;
 			if (ms <= 0) return;
 
-			btSoftBody::RContact c;
+			btSoftBody::DeformableNodeRigidContact c;
 			const btScalar m = n.m_im > 0 ? dynmargin : stamargin;
 
-			btSdfCollisionShape* sdfWrap = (btSdfCollisionShape*)proWrap->getCollisionShape();
-                        btAssert(sdfWrap);
-			btVector3 vtxInSdf = sdfWrap->getWorldTransform().invXform(n.x);
+			btSdfCollisionShape* sdfShape = (btSdfCollisionShape*)pcoWrap->getCollisionShape();
+            btAssert(sdfShape);
+			btVector3 vtxInSdf = pcoWrap->getWorldTransform().invXform(n.m_x);
 			btVector3 normalLocal;
 			btScalar dist;
 			sdfShape->queryPoint(vtxInSdf, dist, normalLocal);
 
-			btVector3 vtxInSdf_trial = sdfWrap->getWorldTransform().invXform(n.q);
+			btVector3 vtxInSdf_trial = pcoWrap->getWorldTransform().invXform(n.m_q);
 			btVector3 normalLocal_trial;
 			btScalar dist_trial;
 			sdfShape->queryPoint(vtxInSdf_trial, dist_trial, normalLocal_trial);
@@ -1089,23 +1090,22 @@ struct btSoftColliders
 			if (dist < 0 || dist_trial < 0)
 			{
 				normalLocal.safeNormalize();
-				c.m_cti.m_colObj = sdfWrap->getCollisionObject();
-				c.m_cti.m_normal = sdfWrap->getWorldTransform().getBasis() * normalLocal;
+				c.m_cti.m_colObj = pcoWrap->getCollisionObject();
+				c.m_cti.m_normal = pcoWrap->getWorldTransform().getBasis() * normalLocal;
 				c.m_cti.m_offset = dist;
 				btSoftBody::sCti& cti = c.m_cti;
 				c.m_node = &n;
-				const btScalar fc = psb->m_cfg.kDF * m_colObj1Wrap->getCollisionObject()->getFriction();
+				const btScalar fc = psb->m_cfg.kDF * pcoWrap->getCollisionObject()->getFriction();
 				c.m_c2 = ima;
 				c.m_c3 = fc;
-				c.m_c4 = m_colObj1Wrap->getCollisionObject()->isStaticOrKinematicObject() ? psb->m_cfg.kKHR : psb->m_cfg.kCHR;
+				c.m_c4 = pcoWrap->getCollisionObject()->isStaticOrKinematicObject() ? psb->m_cfg.kKHR : psb->m_cfg.kCHR;
 
 				if (cti.m_colObj->getInternalType() == btCollisionObject::CO_RIGID_BODY)
 				{
-					const btTransform& wtr = m_rigidBody ? m_rigidBody->getWorldTransform() : m_colObj1Wrap->getCollisionObject()->getWorldTransform();
+					const btTransform& wtr = m_rigidBody ? m_rigidBody->getWorldTransform() : pcoWrap->getCollisionObject()->getWorldTransform();
 					static const btMatrix3x3 iwiStatic(0, 0, 0, 0, 0, 0, 0, 0, 0);
 					const btMatrix3x3& iwi = m_rigidBody ? m_rigidBody->getInvInertiaTensorWorld() : iwiStatic;
 					const btVector3 ra = n.m_x - wtr.getOrigin();
-
 					c.m_c0 = ImpulseMatrix(1, ima, imb, iwi, ra);
 					c.m_c1 = ra;
 				}
@@ -1113,7 +1113,8 @@ struct btSoftColliders
 			}
 		}
 	btSoftBody* psb;
-	const btCollisionObjectWrapper* m_colObj1Wrap;
+	const btCollisionObjectWrapper* pcoWrap;
+    btRigidBody* m_rigidBody;
 	btScalar dynmargin;
 	btScalar stamargin;
 };
