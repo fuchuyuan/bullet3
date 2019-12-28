@@ -117,7 +117,7 @@ void btSoftBody::initDefaults()
 	m_restLengthScale = btScalar(1.0);
     m_dampingCoefficient = 1;
     m_sleepingThreshold = 0.1;
-    m_useFaceContact = true;
+    m_useFaceContact = false;
 	m_useSelfCollision = false;
     m_collisionFlags = 0;
 }

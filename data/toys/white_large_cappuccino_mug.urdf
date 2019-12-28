@@ -22,7 +22,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <cdf filename="white_large_cappuccino_mug_collision.cdf" scale="1 1 1"/>
+        <mesh filename="white_large_cappuccino_mug_collision.obj" scale="1 1 1"/>
       </geometry>
     </collision>
   </link>

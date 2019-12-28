@@ -1080,14 +1080,16 @@ struct btSoftColliders
 			btVector3 normalLocal;
 			btScalar dist = SIMD_INFINITY;
 			bool dist_valid = sdfShape->queryPoint(vtxInSdf, dist, normalLocal);
+            dist-=m;
 
 			btVector3 vtxInSdf_trial = pcoWrap->getWorldTransform().invXform(n.m_q);
 			btVector3 normalLocal_trial;
 			btScalar dist_trial = SIMD_INFINITY;
 			bool trial_dist_valid = sdfShape->queryPoint(vtxInSdf_trial, dist_trial, normalLocal_trial);
+            dist_trial-=m;
 
 			// check for collision at x_{n+1}^* as well at x_n
-			if (dist_valid && trial_dist_valid && (dist < m || dist_trial < m))
+			if (dist_valid && trial_dist_valid && (dist < 0 || dist_trial < 0))
 			{
 				normalLocal.safeNormalize();
 				c.m_cti.m_colObj = pcoWrap->getCollisionObject();
@@ -1100,9 +1102,6 @@ struct btSoftColliders
 				c.m_c3 = fc;
 				c.m_c4 = pcoWrap->getCollisionObject()->isStaticOrKinematicObject() ? psb->m_cfg.kKHR : psb->m_cfg.kCHR;
 
-                printf("x %f %f %f \n", n.m_x[0], n.m_x[1], n.m_x[2]);
-                printf("dist %f normal %f %f %f \n", dist, c.m_cti.m_normal[0], c.m_cti.m_normal[1], c.m_cti.m_normal[2]);
-                printf("coeff c2 %f c3 %f c4 %f\n\n", c.m_c2, c.m_c3, c.m_c4);
 				if (cti.m_colObj->getInternalType() == btCollisionObject::CO_RIGID_BODY)
 				{
 					const btTransform& wtr = m_rigidBody ? m_rigidBody->getWorldTransform() : pcoWrap->getCollisionObject()->getWorldTransform();
@@ -1156,9 +1155,6 @@ struct btSoftColliders
                         c.m_c2 = ima;
                         c.m_c3 = fc;
                         c.m_c4 = m_colObj1Wrap->getCollisionObject()->isStaticOrKinematicObject() ? psb->m_cfg.kKHR : psb->m_cfg.kCHR;
-                        printf("x %f %f %f \n", n.m_x[0], n.m_x[1], n.m_x[2]);
-                        printf("dist %f normal %f %f %f \n",  c.m_cti.m_offset, c.m_cti.m_normal[0], c.m_cti.m_normal[1], c.m_cti.m_normal[2]);
-                        printf("coeff c2 %f c3 %f c4 %f\n\n", c.m_c2, c.m_c3, c.m_c4);
                         
                         if (cti.m_colObj->getInternalType() == btCollisionObject::CO_RIGID_BODY)
                         {

@@ -25,6 +25,8 @@
 #include "../../Importers/ImportURDFDemo/URDF2Bullet.h"
 #include "../../Importers/ImportURDFDemo/MyMultiBodyCreator.h"
 
+#include "BulletCollision/CollisionShapes/btSdfCollisionShape.h"
+
 
 #include "../CommonInterfaces/CommonRigidBodyBase.h"
 #include "../Utils/b3ResourcePath.h"
@@ -120,64 +122,91 @@ void DeformableOnRigid::initPhysics()
     
     
     {
-//        load sdf file
-        int flags = 0;
-        double globalScaling = 1;
-        BulletURDFImporter u2b(m_guiHelper, 0, 0, globalScaling, flags);
-        char m_fileName[1024];
-        b3BulletDefaultFileIO fileio;
-        fileio.findResourcePath("toys/white_large_cappuccino_mug.urdf", m_fileName, 1024);
-        bool loadOk = u2b.loadURDF(m_fileName);
+    //        load cdf file
+            int flags = 0;
+            double globalScaling = 1;
+            BulletURDFImporter u2b(m_guiHelper, 0, 0, globalScaling, flags);
+            char m_fileName[1024];
+            b3BulletDefaultFileIO fileio;
+            fileio.findResourcePath("toys/coke_can/coke_can_cdf.urdf", m_fileName, 1024);
+            bool loadOk = u2b.loadURDF(m_fileName);
 
-        if (loadOk)
-        {
-            btTransform trans;
-            trans.setIdentity();
-//            trans.setRotation(btQuaternion(btVector3(1, 0, 0), -SIMD_PI * 0.5));
-            u2b.setRootTransformInWorld(trans);
-            MyMultiBodyCreator creation(m_guiHelper);
-            ConvertURDF2Bullet(u2b, creation, trans, getDeformableDynamicsWorld(), false, u2b.getPathPrefix());
-            for (int i = 0; i < u2b.getNumAllocatedCollisionShapes(); i++)
+            if (loadOk)
             {
-                m_collisionShapes.push_back(u2b.getAllocatedCollisionShape(i));
+                btTransform trans;
+                trans.setIdentity();
+//                btVector3 orig (0,0.1,0);
+//                trans.setOrigin(orig);
+                trans.setRotation(btQuaternion(btVector3(1, 0, 0), -SIMD_PI * 0.5));
+                u2b.setRootTransformInWorld(trans);
+                MyMultiBodyCreator creation(m_guiHelper);
+                ConvertURDF2Bullet(u2b, creation, trans, getDeformableDynamicsWorld(), false, u2b.getPathPrefix());
+                for (int i = 0; i < u2b.getNumAllocatedCollisionShapes(); i++)
+                {
+                    m_collisionShapes.push_back(u2b.getAllocatedCollisionShape(i));
+                    printf("collision shape size %d\n", m_collisionShapes.size());
+                }
             }
         }
-    }
     
-    {
-        ///create a ground
-        btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));
+//    {
+//        btVector3 nrm;
+//        for(int i =-1; i<=1; i++){
+////            for(int j =-1; j<=1; j++){
+////                       for(int k =-1; k<=1; k++){
+////            btVector3 x(i*0.1,j*0.1, k*0.1);
+//            btVector3 x(0,0,i*0.1);
+//            btTransform wtr;
+//            wtr.setIdentity();
+//            btSdfCollisionShape* sdfShape = (btSdfCollisionShape*)m_collisionShapes[1];
+//            btAssert(sdfShape);
+//            btVector3 normalLocal;
+//            btScalar dist = SIMD_INFINITY;
+//            bool dist_valid = sdfShape->queryPoint(x, dist, normalLocal);
+//            normalLocal.safeNormalize();
+//            printf("x %f %f %f\n", x[0], x[1], x[2]);
+//            printf("dist look up sdf %f, normal %f %f %f\n", dist, normalLocal[0], normalLocal[1], normalLocal[2]);
+//        }
+//
+////    }}
         
-        m_collisionShapes.push_back(groundShape);
-        
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, -25, 0));
-        groundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0));
-        //We can also use DemoApplication::localCreateRigidBody, but for clarity it is provided here:
-        btScalar mass(0.);
-        
-        //rigidbody is dynamic if and only if mass is non zero, otherwise static
-        bool isDynamic = (mass != 0.f);
-        
-        btVector3 localInertia(0, 0, 0);
-        if (isDynamic)
-            groundShape->calculateLocalInertia(mass, localInertia);
-        
-        //using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setFriction(4);
-        
-        //add the ground to the dynamics world
-        m_dynamicsWorld->addRigidBody(body);
-    }
+//    }
+
+    
+//    {
+//        ///create a ground
+//        btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));
+//
+//        m_collisionShapes.push_back(groundShape);
+//
+//        btTransform groundTransform;
+//        groundTransform.setIdentity();
+//        groundTransform.setOrigin(btVector3(0, -25, 0));
+//        groundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0));
+//        //We can also use DemoApplication::localCreateRigidBody, but for clarity it is provided here:
+//        btScalar mass(0.);
+//
+//        //rigidbody is dynamic if and only if mass is non zero, otherwise static
+//        bool isDynamic = (mass != 0.f);
+//
+//        btVector3 localInertia(0, 0, 0);
+//        if (isDynamic)
+//            groundShape->calculateLocalInertia(mass, localInertia);
+//
+//        //using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
+//        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+//        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
+//        btRigidBody* body = new btRigidBody(rbInfo);
+//        body->setFriction(4);
+//
+//        //add the ground to the dynamics world
+//        m_dynamicsWorld->addRigidBody(body);
+//    }
     
     // create a piece of cloth
     {
-        const btScalar s = .08;
-        const btScalar h = 0.16;
+        const btScalar s = .1;
+        const btScalar h = 0.2;
         
         btSoftBody* psb = btSoftBodyHelpers::CreatePatch(getDeformableDynamicsWorld()->getWorldInfo(), btVector3(-s, h, -s),
                                                          btVector3(+s, h, -s),
@@ -189,10 +218,10 @@ void DeformableOnRigid::initPhysics()
         
         psb->getCollisionShape()->setMargin(0.006);
         psb->generateBendingConstraints(2);
-        psb->setTotalMass(.2);
+        psb->setTotalMass(.01);
         psb->m_cfg.kKHR = 1; // collision hardness with kinematic objects
         psb->m_cfg.kCHR = 1; // collision hardness with rigid body
-        psb->m_cfg.kDF = 0.2;
+        psb->m_cfg.kDF = 10;
 //        psb->rotate(btQuaternion(0,SIMD_PI / 2, 0));
         psb->m_cfg.collisions = btSoftBody::fCollision::SDF_RD;
         psb->m_cfg.collisions |= btSoftBody::fCollision::VF_DD;
