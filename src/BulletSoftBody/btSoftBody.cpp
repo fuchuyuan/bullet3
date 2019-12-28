@@ -3650,6 +3650,7 @@ void btSoftBody::defaultCollisionHandler(const btCollisionObjectWrapper* pcoWrap
 		case fCollision::SDF_RD:
 		{
 			// use sdf file
+            btRigidBody* prb1 = (btRigidBody*)btRigidBody::upcast(pcoWrap->getCollisionObject());
 			if (pcoWrap->getCollisionShape()->getShapeType() == SDF_SHAPE_PROXYTYPE)
 			{
 				btSdfCollisionShape* sdfShape = (btSdfCollisionShape*)pcoWrap->getCollisionShape();
@@ -3665,6 +3666,7 @@ void btSoftBody::defaultCollisionHandler(const btCollisionObjectWrapper* pcoWrap
 					volume.Expand(btVector3(basemargin, basemargin, basemargin));
 					btSoftColliders::CollideSDF2_RD docollideNode;
 					docollideNode.psb = this;
+                    docollideNode.m_rigidBody = prb1;
 					docollideNode.pcoWrap = pcoWrap;
 					docollideNode.dynmargin = basemargin + timemargin;
 					docollideNode.stamargin = basemargin;
@@ -3677,8 +3679,7 @@ void btSoftBody::defaultCollisionHandler(const btCollisionObjectWrapper* pcoWrap
 			}
 			else
 			{
-				// compute sdf using GjkEpa and cache sdf
-				btRigidBody* prb1 = (btRigidBody*)btRigidBody::upcast(pcoWrap->getCollisionObject());
+				// compute sdf using GjkEpa and cache sdf				
 				if (pcoWrap->getCollisionObject()->isActive() || this->isActive())
 				{
 					const btTransform wtr = pcoWrap->getWorldTransform();

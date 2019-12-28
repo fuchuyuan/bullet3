@@ -13,12 +13,18 @@
 #include "DeformableOnRigid.h"
 ///btBulletDynamicsCommon.h is the main Bullet include file, contains most common include files.
 #include "btBulletDynamicsCommon.h"
+#include "../Utils/b3BulletDefaultFileIO.h"
 #include "BulletSoftBody/btDeformableMultiBodyDynamicsWorld.h"
 #include "BulletSoftBody/btSoftBody.h"
 #include "BulletSoftBody/btSoftBodyHelpers.h"
 #include "BulletSoftBody/btDeformableBodySolver.h"
 #include "BulletSoftBody/btSoftBodyRigidBodyCollisionConfiguration.h"
 #include <stdio.h>  //printf debugging
+
+#include "../../Importers/ImportURDFDemo/BulletUrdfImporter.h"
+#include "../../Importers/ImportURDFDemo/URDF2Bullet.h"
+#include "../../Importers/ImportURDFDemo/MyMultiBodyCreator.h"
+
 
 #include "../CommonInterfaces/CommonRigidBodyBase.h"
 #include "../Utils/b3ResourcePath.h"
@@ -41,10 +47,10 @@ public:
     
     void resetCamera()
     {
-        float dist = 2;
-        float pitch = -8;
-        float yaw = 100;
-        float targetPos[3] = {0, -10, 0};
+        float dist = 1;
+        float pitch = 0;
+        float yaw = 30;
+        float targetPos[3] = {0, 0, 0};
         m_guiHelper->resetCamera(dist, yaw, pitch, targetPos[0], targetPos[1], targetPos[2]);
     }
     
@@ -112,6 +118,32 @@ void DeformableOnRigid::initPhysics()
     //    getDeformableDynamicsWorld()->before_solver_callbacks.push_back(dynamics);
     m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
     
+    
+    {
+//        load sdf file
+        int flags = 0;
+        double globalScaling = 1;
+        BulletURDFImporter u2b(m_guiHelper, 0, 0, globalScaling, flags);
+        char m_fileName[1024];
+        b3BulletDefaultFileIO fileio;
+        fileio.findResourcePath("toys/white_large_cappuccino_mug.urdf", m_fileName, 1024);
+        bool loadOk = u2b.loadURDF(m_fileName);
+
+        if (loadOk)
+        {
+            btTransform trans;
+            trans.setIdentity();
+//            trans.setRotation(btQuaternion(btVector3(1, 0, 0), -SIMD_PI * 0.5));
+            u2b.setRootTransformInWorld(trans);
+            MyMultiBodyCreator creation(m_guiHelper);
+            ConvertURDF2Bullet(u2b, creation, trans, getDeformableDynamicsWorld(), false, u2b.getPathPrefix());
+            for (int i = 0; i < u2b.getNumAllocatedCollisionShapes(); i++)
+            {
+                m_collisionShapes.push_back(u2b.getAllocatedCollisionShape(i));
+            }
+        }
+    }
+    
     {
         ///create a ground
         btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));
@@ -120,7 +152,7 @@ void DeformableOnRigid::initPhysics()
         
         btTransform groundTransform;
         groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, -35, 0));
+        groundTransform.setOrigin(btVector3(0, -25, 0));
         groundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0));
         //We can also use DemoApplication::localCreateRigidBody, but for clarity it is provided here:
         btScalar mass(0.);
@@ -144,10 +176,10 @@ void DeformableOnRigid::initPhysics()
     
     // create a piece of cloth
     {
-        const btScalar s = 0.1;
-        const btScalar h = 0.2;
+        const btScalar s = .08;
+        const btScalar h = 0.16;
         
-        btSoftBody* psb = btSoftBodyHelpers::CreatePatch(getDeformableDynamicsWorld()->getWorldInfo(), btVector3(-s, h, -4*s),
+        btSoftBody* psb = btSoftBodyHelpers::CreatePatch(getDeformableDynamicsWorld()->getWorldInfo(), btVector3(-s, h, -s),
                                                          btVector3(+s, h, -s),
                                                          btVector3(-s, h, +s),
                                                          btVector3(+s, h, +s),
@@ -161,7 +193,7 @@ void DeformableOnRigid::initPhysics()
         psb->m_cfg.kKHR = 1; // collision hardness with kinematic objects
         psb->m_cfg.kCHR = 1; // collision hardness with rigid body
         psb->m_cfg.kDF = 0.2;
-        psb->rotate(btQuaternion(0,SIMD_PI / 2, 0));
+//        psb->rotate(btQuaternion(0,SIMD_PI / 2, 0));
         psb->m_cfg.collisions = btSoftBody::fCollision::SDF_RD;
         psb->m_cfg.collisions |= btSoftBody::fCollision::VF_DD;
         getDeformableDynamicsWorld()->addSoftBody(psb);
