@@ -58,7 +58,7 @@ struct btShapeMatrix
 
 struct btShapeMatrixLinear
 {
-    double m_vec[4];
+    double m_vec[8];
 
     inline double& operator[](int i)
     {
@@ -100,7 +100,7 @@ struct btShapeGradients
 
 struct btShapeGradientsLinear
 {
-    btVector3 m_vec[4];
+    btVector3 m_vec[8];
 
     inline btScalar& operator()(int i, int j)
     {
