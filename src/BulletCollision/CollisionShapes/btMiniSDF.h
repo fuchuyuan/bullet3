@@ -56,6 +56,22 @@ struct btShapeMatrix
 	}
 };
 
+struct btShapeMatrixLinear
+{
+    double m_vec[4];
+
+    inline double& operator[](int i)
+    {
+        return m_vec[i];
+    }
+
+    inline const double& operator[](int i) const
+    {
+        return m_vec[i];
+    }
+};
+
+
 struct btShapeGradients
 {
 	btVector3 m_vec[32];
@@ -80,6 +96,16 @@ struct btShapeGradients
 	{
 		return m_vec[i][j];
 	}
+};
+
+struct btShapeGradientsLinear
+{
+    btVector3 m_vec[4];
+
+    inline btScalar& operator()(int i, int j)
+    {
+        return m_vec[i][j];
+    }
 };
 
 struct btCell32
@@ -120,6 +146,8 @@ struct btMiniSDF
 
 	btShapeMatrix
 	shape_function_(btVector3 const& xi, btShapeGradients* gradient = 0) const;
+    btShapeMatrixLinear
+    shape_function_linear_(btVector3 const& xi, btShapeGradientsLinear* gradient = 0) const;
 
 	bool interpolate(unsigned int field_id, double& dist, btVector3 const& x, btVector3* gradient) const;
 };

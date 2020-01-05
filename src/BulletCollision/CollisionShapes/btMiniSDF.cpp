@@ -195,6 +195,56 @@ btMiniSDF::subdomain(unsigned int l) const
 	return subdomain(singleToMultiIndex(l));
 }
 
+btShapeMatrixLinear
+btMiniSDF::shape_function_linear_(btVector3 const& xi, btShapeGradientsLinear* gradient) const{
+    btAssert(m_isValid);
+    btShapeMatrixLinear res;
+
+    btScalar x = xi[0];
+    btScalar y = xi[1];
+    btScalar z = xi[2];
+
+    btScalar _1mx = 1.0 - x;
+    btScalar _1my = 1.0 - y;
+    btScalar _1mz = 1.0 - z;
+
+    btScalar _1px = 1.0 + x;
+    btScalar _1py = 1.0 + y;
+    btScalar _1pz = 1.0 + z;
+    
+    btScalar _1mxt1my = _1mx * _1my;
+    btScalar _1mxt1py = _1mx * _1py;
+    btScalar _1pxt1my = _1px * _1my;
+    btScalar _1pxt1py = _1px * _1py;
+
+    // Corner nodes.
+    btScalar fac = 1.0/64.0;
+    res[0] = fac * _1mxt1my * _1mz;
+    res[1] = fac * _1pxt1my * _1mz;
+    res[2] = fac * _1mxt1py * _1mz;
+    res[3] = fac * _1pxt1py * _1mz;
+    res[4] = fac * _1mxt1my * _1pz;
+    res[5] = fac * _1pxt1my * _1pz;
+    res[6] = fac * _1mxt1py * _1pz;
+    res[7] = fac * _1pxt1py * _1pz;
+    
+
+    if (gradient)
+    {
+        btShapeGradientsLinear& dN = *gradient;
+
+        dN(0, 0) =  -fac*_1my*_1mz; dN(0, 1) =  -fac*_1mx*_1mz; dN(0, 2) =  -fac*_1mx*_1my;
+        dN(1, 0) =  fac*_1my*_1mz;  dN(1, 1) =  -fac*_1mx*_1mz; dN(1, 2) =  -fac*_1mx*_1my;
+        dN(2, 0) =  -fac*_1my*_1mz; dN(2, 1) =  fac*_1mx*_1mz;  dN(2, 2) =  -fac*_1mx*_1my;
+        dN(3, 0) =   fac*_1my*_1mz; dN(3, 1) =  fac*_1mx*_1mz;  dN(3, 2) =  -fac*_1mx*_1my;
+        dN(4, 0) =  -fac*_1my*_1mz; dN(4, 1) =  -fac*_1mx*_1mz; dN(4, 2) =  fac*_1mx*_1my;
+        dN(5, 0) =  fac*_1my*_1mz;  dN(5, 1) =  -fac*_1mx*_1mz; dN(5, 2) =  fac*_1mx*_1my;
+        dN(6, 0) =  -fac*_1my*_1mz; dN(6, 1) =  fac*_1mx*_1mz;  dN(6, 2) =  fac*_1mx*_1my;
+        dN(7, 0) =   fac*_1my*_1mz; dN(7, 1) =  fac*_1mx*_1mz;  dN(7, 2) =  fac*_1mx*_1my;
+    }
+
+    return res;
+}
 btShapeMatrix
 btMiniSDF::shape_function_(btVector3 const& xi, btShapeGradients* gradient) const
 {
@@ -449,8 +499,10 @@ bool btMiniSDF::interpolate(unsigned int field_id, double& dist, btVector3 const
 	if (!m_domain.contains(x))
 		return false;
 
+    //caculate index, with domain_min being 0
 	btVector3 tmpmi = ((x - m_domain.min()) * (m_inv_cell_size));  //.cast<unsigned int>().eval();
 	unsigned int mi[3] = {(unsigned int)tmpmi[0], (unsigned int)tmpmi[1], (unsigned int)tmpmi[2]};
+    // clamp if too big
 	if (mi[0] >= m_resolution[0])
 		mi[0] = m_resolution[0] - 1;
 	if (mi[1] >= m_resolution[1])
@@ -480,7 +532,7 @@ bool btMiniSDF::interpolate(unsigned int field_id, double& dist, btVector3 const
 	{
 		//auto phi = m_coefficients[field_id][i].dot(shape_function_(xi, 0));
 		double phi = 0.0;
-		btShapeMatrix N = shape_function_(xi, 0);
+		btShapeMatrixLinear N = shape_function_linear_(xi, 0);
 		for (unsigned int j = 0u; j < 32u; ++j)
 		{
 			unsigned int v = cell.m_cells[j];
@@ -497,12 +549,12 @@ bool btMiniSDF::interpolate(unsigned int field_id, double& dist, btVector3 const
 		return true;
 	}
 
-	btShapeGradients dN;
-	btShapeMatrix N = shape_function_(xi, &dN);
+	btShapeGradientsLinear dN;
+	btShapeMatrixLinear N = shape_function_linear_(xi, &dN);
 
 	double phi = 0.0;
 	gradient->setZero();
-	for (unsigned int j = 0u; j < 32u; ++j)
+	for (unsigned int j = 0u; j < 4u; ++j)
 	{
 		unsigned int v = cell.m_cells[j];
 		double c = m_nodes[field_id][v];
