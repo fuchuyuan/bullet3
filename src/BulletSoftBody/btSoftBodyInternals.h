@@ -1058,7 +1058,6 @@ struct btSoftColliders
 	{
 		void Process(const btDbvtNode* leaf)
 		{
-//			btSoftBody::Node* node = (btSoftBody::Node*)leaf->data;
 			// Do collsion detection for each node
 			for (int i = 0; i < psb->m_nodes.size(); i++)
 				DoNode(psb->m_nodes[i]);
@@ -1091,7 +1090,6 @@ struct btSoftColliders
 
 			// check for collision at x_{n+1}^* as well at x_n
 			if (dist_valid && trial_dist_valid && (dist < 0 || dist_trial < 0))
-//            if (trial_dist_valid && (dist < 0))
 			{
 				normalLocal.safeNormalize();
 				c.m_cti.m_colObj = pcoWrap->getCollisionObject();

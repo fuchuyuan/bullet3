@@ -550,9 +550,6 @@ bool btMiniSDF::interpolate(unsigned int field_id, double& dist, btVector3 const
 		dist = phi;
 		return true;
 	}
-
-//	btShapeGradientsLinear dN;
-//	btShapeMatrixLinear N = shape_function_linear_(xi, &dN);
     
     btShapeGradients dN;
     btShapeMatrix N = shape_function_(xi, &dN);
