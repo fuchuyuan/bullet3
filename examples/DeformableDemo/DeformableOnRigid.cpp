@@ -149,37 +149,6 @@ void DeformableOnRigid::initPhysics()
             }
         }
 
-
-    
-//    {
-//        ///create a ground
-//        btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));
-//
-//        m_collisionShapes.push_back(groundShape);
-//
-//        btTransform groundTransform;
-//        groundTransform.setIdentity();
-//        groundTransform.setOrigin(btVector3(0, -25, 0));
-//        groundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0));
-//        //We can also use DemoApplication::localCreateRigidBody, but for clarity it is provided here:
-//        btScalar mass(0.);
-//
-//        //rigidbody is dynamic if and only if mass is non zero, otherwise static
-//        bool isDynamic = (mass != 0.f);
-//
-//        btVector3 localInertia(0, 0, 0);
-//        if (isDynamic)
-//            groundShape->calculateLocalInertia(mass, localInertia);
-//
-//        //using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-//        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-//        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
-//        btRigidBody* body = new btRigidBody(rbInfo);
-//        body->setFriction(4);
-//
-//        //add the ground to the dynamics world
-//        m_dynamicsWorld->addRigidBody(body);
-//    }
     
     // create a piece of cloth
     {
@@ -206,7 +175,7 @@ void DeformableOnRigid::initPhysics()
         getDeformableDynamicsWorld()->addSoftBody(psb);
         psb->setSelfCollision(true);
         
-        btDeformableMassSpringForce* mass_spring = new btDeformableMassSpringForce(0.2,0.01, true);
+        btDeformableMassSpringForce* mass_spring = new btDeformableMassSpringForce(0.2,0.01, false);
         getDeformableDynamicsWorld()->addForce(psb, mass_spring);
         m_forces.push_back(mass_spring);
         
