@@ -1,5 +1,5 @@
 #include "btMiniSDF.h"
-
+#include "LinearMath/btQuickprof.h"
 //
 //Based on code from DiscreGrid, https://github.com/InteractiveComputerGraphics/Discregrid
 //example:
@@ -492,6 +492,7 @@ btMiniSDF::shape_function_(btVector3 const& xi, btShapeGradients* gradient) cons
 bool btMiniSDF::interpolate(unsigned int field_id, double& dist, btVector3 const& x,
 							btVector3* gradient) const
 {
+    BT_PROFILE("sdf interpolate");
 	btAssert(m_isValid);
 	if (!m_isValid)
 		return false;
@@ -530,10 +531,11 @@ bool btMiniSDF::interpolate(unsigned int field_id, double& dist, btVector3 const
 	btCell32 const& cell = m_cells[field_id][i];
 	if (!gradient)
 	{
+            BT_PROFILE("compute distance");
 		//auto phi = m_coefficients[field_id][i].dot(shape_function_(xi, 0));
 		double phi = 0.0;
 		btShapeMatrixLinear N = shape_function_linear_(xi, 0);
-		for (unsigned int j = 0u; j < 8u; ++j)
+		for (unsigned int j = 0u; j < 32u; ++j)
 		{
 			unsigned int v = cell.m_cells[j];
 			double c = m_nodes[field_id][v];
@@ -549,12 +551,17 @@ bool btMiniSDF::interpolate(unsigned int field_id, double& dist, btVector3 const
 		return true;
 	}
 
-	btShapeGradientsLinear dN;
-	btShapeMatrixLinear N = shape_function_linear_(xi, &dN);
+//	btShapeGradientsLinear dN;
+//	btShapeMatrixLinear N = shape_function_linear_(xi, &dN);
+    
+    btShapeGradients dN;
+    btShapeMatrix N = shape_function_(xi, &dN);
 
+    {
+    BT_PROFILE("compute distance and normal");
 	double phi = 0.0;
 	gradient->setZero();
-	for (unsigned int j = 0u; j < 8u; ++j)
+	for (unsigned int j = 0u; j < 32u; ++j)
 	{
 		unsigned int v = cell.m_cells[j];
 		double c = m_nodes[field_id][v];
@@ -567,8 +574,10 @@ bool btMiniSDF::interpolate(unsigned int field_id, double& dist, btVector3 const
 		(*gradient)[0] += c * dN(j, 0);
 		(*gradient)[1] += c * dN(j, 1);
 		(*gradient)[2] += c * dN(j, 2);
-	}
+    }
+        
 	(*gradient) *= c0;
-	dist = phi;
+        dist = phi;        
+    }
 	return true;
 }

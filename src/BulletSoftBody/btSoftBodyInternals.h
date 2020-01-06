@@ -1065,6 +1065,7 @@ struct btSoftColliders
 		}
 		void DoNode(btSoftBody::Node& n) const
 		{
+            BT_PROFILE("do node");
 			if (n.m_battach) return;
 			const btScalar ima = n.m_im;
 			const btScalar imb = m_rigidBody ? m_rigidBody->getInvMass() : 0.f;
@@ -1090,6 +1091,7 @@ struct btSoftColliders
 
 			// check for collision at x_{n+1}^* as well at x_n
 			if (dist_valid && trial_dist_valid && (dist < 0 || dist_trial < 0))
+//            if (trial_dist_valid && (dist < 0))
 			{
 				normalLocal.safeNormalize();
 				c.m_cti.m_colObj = pcoWrap->getCollisionObject();

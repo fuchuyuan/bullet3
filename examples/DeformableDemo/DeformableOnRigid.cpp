@@ -128,7 +128,7 @@ void DeformableOnRigid::initPhysics()
             BulletURDFImporter u2b(m_guiHelper, 0, 0, globalScaling, flags);
             char m_fileName[1024];
             b3BulletDefaultFileIO fileio;
-            fileio.findResourcePath("toys/coke_can/coke_can_cdf.urdf", m_fileName, 1024);
+            fileio.findResourcePath("toys/white_large_cappuccino_mug_cdf.urdf", m_fileName, 1024);
             bool loadOk = u2b.loadURDF(m_fileName);
 
             if (loadOk)
@@ -148,29 +148,7 @@ void DeformableOnRigid::initPhysics()
                 }
             }
         }
-    
-//    {
-//        btVector3 nrm;
-//        for(int i =-1; i<=1; i++){
-////            for(int j =-1; j<=1; j++){
-////                       for(int k =-1; k<=1; k++){
-////            btVector3 x(i*0.1,j*0.1, k*0.1);
-//            btVector3 x(0,0,i*0.1);
-//            btTransform wtr;
-//            wtr.setIdentity();
-//            btSdfCollisionShape* sdfShape = (btSdfCollisionShape*)m_collisionShapes[1];
-//            btAssert(sdfShape);
-//            btVector3 normalLocal;
-//            btScalar dist = SIMD_INFINITY;
-//            bool dist_valid = sdfShape->queryPoint(x, dist, normalLocal);
-//            normalLocal.safeNormalize();
-//            printf("x %f %f %f\n", x[0], x[1], x[2]);
-//            printf("dist look up sdf %f, normal %f %f %f\n", dist, normalLocal[0], normalLocal[1], normalLocal[2]);
-//        }
-//
-////    }}
-        
-//    }
+
 
     
 //    {

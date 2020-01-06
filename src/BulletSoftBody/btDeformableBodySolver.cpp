@@ -452,6 +452,7 @@ void btDeformableBodySolver::predictDeformableMotion(btSoftBody* psb, btScalar d
     }
     /* Clear contacts        */
     psb->m_nodeRigidContacts.resize(0);
+//    psb->m_nodeRigidContacts.reserve(psb->m_nodes.size());
     psb->m_faceRigidContacts.resize(0);
     psb->m_faceNodeContacts.resize(0);
     /* Optimize dbvt's        */
