@@ -94,14 +94,92 @@ public:
         startTransform.setIdentity();
         startTransform.setOrigin(btVector3(0, .5, 0));
         createRigidBody(mass, startTransform, shape[0]);
-//        startTransform.setOrigin(btVector3(1, 1.5, -1));
-//        createRigidBody(mass, startTransform, shape[0]);
-//        startTransform.setOrigin(btVector3(-1, 1.5, 1));
-//        createRigidBody(mass, startTransform, shape[0]);
-//        startTransform.setOrigin(btVector3(-1, 1.5, -1));
-//        createRigidBody(mass, startTransform, shape[0]);
-//        startTransform.setOrigin(btVector3(0, 3.5, 0));
-//        createRigidBody(mass, startTransform, shape[0]);
+        //        startTransform.setOrigin(btVector3(1, 1.5, -1));
+        //        createRigidBody(mass, startTransform, shape[0]);
+        //        startTransform.setOrigin(btVector3(-1, 1.5, 1));
+        //        createRigidBody(mass, startTransform, shape[0]);
+        //        startTransform.setOrigin(btVector3(-1, 1.5, -1));
+        //        createRigidBody(mass, startTransform, shape[0]);
+        //        startTransform.setOrigin(btVector3(0, 3.5, 0));
+        //        createRigidBody(mass, startTransform, shape[0]);
+    }
+    
+    void load_bag(const btVector3 & tr){
+        btSoftBody* psb = NULL;
+        
+        std::vector<tinyobj::shape_t> shapes;
+        tinyobj::attrib_t attribute;
+        char absolute_path[1024];
+        b3BulletDefaultFileIO fileio;
+        fileio.findResourcePath("dang_sticky_rice_chips_full_sim.obj", absolute_path, 1024);
+        std::string err = tinyobj::LoadObj(attribute, shapes, absolute_path, "", &fileio);
+        if (!shapes.empty())
+        {
+            const tinyobj::shape_t& shape = shapes[0];
+            btAlignedObjectArray<btScalar> vertices;
+            btAlignedObjectArray<int> indices;
+            for (int i = 0; i < attribute.vertices.size(); i++)
+            {
+                vertices.push_back(attribute.vertices[i]);
+            }
+            for (int i = 0; i < shape.mesh.indices.size(); i++)
+            {
+                indices.push_back(shape.mesh.indices[i].vertex_index);
+            }
+            int numTris = shape.mesh.indices.size() / 3;
+            if (numTris > 0)
+            {
+                psb = btSoftBodyHelpers::CreateFromTriMesh(   getDeformableDynamicsWorld()->getWorldInfo(), &vertices[0], &indices[0], numTris);
+                
+                btAssert(psb!=nullptr);
+            }
+            btScalar elastic_stiffness = 0.2;
+            btScalar damping_stiffness = 0.01;
+            bool not_damp_all_directions = true;
+            btScalar bending_stiffness = 0.2;
+            btDeformableLagrangianForce* springForce =
+            new btDeformableMassSpringForce(elastic_stiffness,
+                                            damping_stiffness, not_damp_all_directions,bending_stiffness);
+            psb->generateBendingConstraints(3);
+            getDeformableDynamicsWorld()->addForce(psb, springForce);
+            m_forces.push_back(springForce);
+            
+            btVector3 gravity =getDeformableDynamicsWorld()->getGravity();
+            btDeformableLagrangianForce* gravityForce = new btDeformableGravityForce(gravity *0.2);
+            getDeformableDynamicsWorld()->addForce(psb, gravityForce);
+            m_forces.push_back(gravityForce);
+            
+            btScalar friction = 1;
+            psb->m_cfg.kDF = friction;
+            
+            // turn on the collision flag for deformable
+            // collision between deformable and rigid
+            psb->m_cfg.collisions = btSoftBody::fCollision::SDF_RD;
+            // turn on face contact for multibodies
+            psb->m_cfg.collisions |= btSoftBody::fCollision::SDF_MDF;
+            /// turn on face contact for rigid body
+            psb->m_cfg.collisions |= btSoftBody::fCollision::SDF_RDF;
+            // collion between deformable and deformable and self-collision
+            psb->m_cfg.collisions |= btSoftBody::fCollision::VF_DD;
+            psb->setCollisionFlags(0);
+            
+            psb->setTotalMass(0.02);
+            psb->setSelfCollision(false);
+            btScalar repulsionStiffness = 0.2;
+            psb->setSpringStiffness(repulsionStiffness);
+            psb->initializeFaceTree();
+        }
+        //        psb->scale(btVector3(1, 1, 1));
+        psb->rotate(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0.5));
+        psb->translate(tr);
+        
+        psb->getCollisionShape()->setMargin(0.005);
+        psb->getCollisionShape()->setUserPointer(psb);
+        
+        psb->m_cfg.kKHR = 1; // collision hardness with kinematic objects
+        psb->m_cfg.kCHR = 1; // collision hardness with rigid body
+        getDeformableDynamicsWorld()->addSoftBody(psb);
+        
     }
     
     virtual const btDeformableMultiBodyDynamicsWorld* getDeformableDynamicsWorld() const
@@ -194,84 +272,9 @@ void BagRigid::initPhysics()
     }
     
     // create a piece of cloth
-    if(1)
-    {
-        btSoftBody* psb = NULL;
-        
-        std::vector<tinyobj::shape_t> shapes;
-        tinyobj::attrib_t attribute;
-        char absolute_path[1024];
-        b3BulletDefaultFileIO fileio;
-        fileio.findResourcePath("dang_sticky_rice_chips_full_sim.obj", absolute_path, 1024);
-        std::string err = tinyobj::LoadObj(attribute, shapes, absolute_path, "", &fileio);
-        if (!shapes.empty())
-        {
-            const tinyobj::shape_t& shape = shapes[0];
-            btAlignedObjectArray<btScalar> vertices;
-            btAlignedObjectArray<int> indices;
-            for (int i = 0; i < attribute.vertices.size(); i++)
-            {
-                vertices.push_back(attribute.vertices[i]);
-            }
-            for (int i = 0; i < shape.mesh.indices.size(); i++)
-            {
-                indices.push_back(shape.mesh.indices[i].vertex_index);
-            }
-            int numTris = shape.mesh.indices.size() / 3;
-            if (numTris > 0)
-            {
-                psb = btSoftBodyHelpers::CreateFromTriMesh(   getDeformableDynamicsWorld()->getWorldInfo(), &vertices[0], &indices[0], numTris);
-                
-                btAssert(psb!=nullptr);
-            }
-            btScalar elastic_stiffness = 0.2;
-            btScalar damping_stiffness = 0.01;
-            bool not_damp_all_directions = true;
-            btScalar bending_stiffness = 0.2;
-            btDeformableLagrangianForce* springForce =
-            new btDeformableMassSpringForce(elastic_stiffness,
-                                            damping_stiffness, not_damp_all_directions,bending_stiffness);
-            psb->generateBendingConstraints(3);
-            getDeformableDynamicsWorld()->addForce(psb, springForce);
-            m_forces.push_back(springForce);
-            
-            btVector3 gravity =getDeformableDynamicsWorld()->getGravity();
-            btDeformableLagrangianForce* gravityForce = new btDeformableGravityForce(gravity *0.2);
-            getDeformableDynamicsWorld()->addForce(psb, gravityForce);
-            m_forces.push_back(gravityForce);
-            
-            btScalar friction = 1;
-            psb->m_cfg.kDF = friction;
-            
-            // turn on the collision flag for deformable
-            // collision between deformable and rigid
-            psb->m_cfg.collisions = btSoftBody::fCollision::SDF_RD;
-            // turn on face contact for multibodies
-            psb->m_cfg.collisions |= btSoftBody::fCollision::SDF_MDF;
-            /// turn on face contact for rigid body
-            psb->m_cfg.collisions |= btSoftBody::fCollision::SDF_RDF;
-            // collion between deformable and deformable and self-collision
-            psb->m_cfg.collisions |= btSoftBody::fCollision::VF_DD;
-            psb->setCollisionFlags(0);
-            
-            psb->setTotalMass(0.02);
-            psb->setSelfCollision(false);
-            btScalar repulsionStiffness = 0.2;
-            psb->setSpringStiffness(repulsionStiffness);
-            psb->initializeFaceTree();
-        }
-//        psb->scale(btVector3(1, 1, 1));
-        psb->rotate(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0.5));
-        psb->translate(btVector3(0,0.1,0));
-        
-        psb->getCollisionShape()->setMargin(0.005);
-        psb->getCollisionShape()->setUserPointer(psb);
-        
-        psb->m_cfg.kKHR = 1; // collision hardness with kinematic objects
-        psb->m_cfg.kCHR = 1; // collision hardness with rigid body
-        getDeformableDynamicsWorld()->addSoftBody(psb);        
-    }
-        Ctor_RbUpStack(10);
+    load_bag(btVector3(0,0.1,0));
+    load_bag(btVector3(0.01,0.3,0.01));
+//    Ctor_RbUpStack(10);
     getDeformableDynamicsWorld()->setImplicit(false);
     getDeformableDynamicsWorld()->setLineSearch(false);
     m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
