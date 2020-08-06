@@ -275,6 +275,7 @@ public:
 		btVector3 m_splitv;               // velocity associated with split impulse
 		btMatrix3x3 m_effectiveMass;      // effective mass in contact
 		btMatrix3x3 m_effectiveMass_inv;  // inverse of effective mass
+        int m_collsion_checked;
 	};
 	/* Link			*/
 	ATTRIBUTE_ALIGNED16(struct)

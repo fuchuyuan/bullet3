@@ -373,10 +373,10 @@ void GraspDeformable::initPhysics()
         
         getDeformableDynamicsWorld()->addSoftBody(psb);
         
-        btScalar elastic_stiffness = 0.2;
-        btScalar damping_stiffness = 0.01;
+        btScalar elastic_stiffness = 0.02;
+        btScalar damping_stiffness = 0.001;
         bool not_damp_all_directions = true;
-        btScalar bending_stiffness = 0.2;
+        btScalar bending_stiffness = 0.02;
         psb->setSpringStiffness(elastic_stiffness);
         btDeformableLagrangianForce* springForce =
         new btDeformableMassSpringForce(elastic_stiffness,

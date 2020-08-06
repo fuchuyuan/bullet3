@@ -121,20 +121,20 @@ void btDeformableContactProjection::setConstraints(const btContactSolverInfo& in
 			btDeformableNodeAnchorConstraint constraint(anchor, infoGlobal);
 			m_nodeAnchorConstraints[i].push_back(constraint);
 		}
-
-		// set Deformable Node vs. Rigid constraint
-		for (int j = 0; j < psb->m_nodeRigidContacts.size(); ++j)
-		{
-			const btSoftBody::DeformableNodeRigidContact& contact = psb->m_nodeRigidContacts[j];
-			// skip fixed points
-			if (contact.m_node->m_im == 0)
-			{
-				continue;
-			}
-			btDeformableNodeRigidContactConstraint constraint(contact, infoGlobal);
-			m_nodeRigidConstraints[i].push_back(constraint);
-		}
-
+        
+        // set Deformable Node vs. Rigid constraint
+        for (int j = 0; j < psb->m_nodeRigidContacts.size(); ++j)
+        {
+            const btSoftBody::DeformableNodeRigidContact& contact = psb->m_nodeRigidContacts[j];
+            // skip fixed points
+            if (contact.m_node->m_im == 0)
+            {
+                continue;
+            }
+            btDeformableNodeRigidContactConstraint constraint(contact, infoGlobal);
+            m_nodeRigidConstraints[i].push_back(constraint);
+        }
+        
 		// set Deformable Face vs. Rigid constraint
 		for (int j = 0; j < psb->m_faceRigidContacts.size(); ++j)
 		{

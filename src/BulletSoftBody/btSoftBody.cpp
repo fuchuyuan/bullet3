@@ -2821,7 +2821,6 @@ bool btSoftBody::checkDeformableFaceContact(const btCollisionObjectWrapper* colO
     btGjkEpaSolver2::sResults results;
 
 //	#define USE_QUADRATURE 1
-#define CACHE_PREV_COLLISION
 
 	// use collision quadrature point
 #ifdef USE_QUADRATURE
@@ -4140,8 +4139,20 @@ void btSoftBody::defaultCollisionHandler(const btCollisionObjectWrapper* pcoWrap
 					docollideFace.psb = this;
 					docollideFace.m_colObj1Wrap = pcoWrap;
 					docollideFace.m_rigidBody = prb1;
-					docollideFace.dynmargin = basemargin + timemargin;
-					docollideFace.stamargin = basemargin;
+                    docollideFace.dynmargin = basemargin + timemargin;
+                    docollideFace.stamargin = basemargin;
+                    
+#ifdef CACHE_PREV_COLLISION
+                    // reset softbody node collision tag
+                    for(int i = 0; i<this->m_nodes.size(); i++){
+                        this->m_nodes[i].m_collsion_checked = 0;
+                    }
+                    docollideFace.m_docollideNode.psb= this;
+                    docollideFace.m_docollideNode.m_colObj1Wrap = pcoWrap;
+                    docollideFace.m_docollideNode.m_rigidBody = prb1;
+                    docollideFace.m_docollideNode.dynmargin = basemargin + timemargin;
+                    docollideFace.m_docollideNode.stamargin = basemargin;
+#endif
 					m_fdbvt.collideTV(m_fdbvt.m_root, volume, docollideFace);
 				}
 			}
