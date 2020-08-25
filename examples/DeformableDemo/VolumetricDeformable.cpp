@@ -26,11 +26,14 @@
 #include "../CommonInterfaces/CommonDeformableBodyBase.h"
 #include "../Utils/b3ResourcePath.h"
 
+#include "../Importers/ImportURDFDemo/BulletUrdfImporter.h"
+#include "../Importers/ImportURDFDemo/URDF2Bullet.h"
+#include "../Importers/ImportURDFDemo/MyMultiBodyCreator.h"
+
 ///The VolumetricDeformable shows the contact between volumetric deformable objects and rigid objects.
-static btScalar E = 50;
+static btScalar E = 25;
 static btScalar nu = 0.3;
-static btScalar damping_alpha = 0.1;
-static btScalar damping_beta = 0.01;
+static btScalar damping = 0.01;
 
 struct TetraCube
 {
@@ -39,16 +42,13 @@ struct TetraCube
 
 class VolumetricDeformable : public CommonDeformableBodyBase
 {
-	btDeformableLinearElasticityForce* m_linearElasticity;
+	btDeformableNeoHookeanForce* m_neohookean;
 
 public:
 	VolumetricDeformable(struct GUIHelperInterface* helper)
 		: CommonDeformableBodyBase(helper)
 	{
-        m_linearElasticity = 0;
-		m_pickingForceElasticStiffness = 100;
-		m_pickingForceDampingStiffness = 0;
-		m_maxPickingForce = 1e10; // allow large picking force with implicit scheme.
+        m_neohookean = 0;
 	}
 	virtual ~VolumetricDeformable()
 	{
@@ -59,21 +59,24 @@ public:
 
 	void resetCamera()
 	{
-        float dist = 20;
-        float pitch = -45;
-        float yaw = 100;
-        float targetPos[3] = {0, 3, 0};
+        float dist = 3;
+        float pitch = -15;
+        float yaw = 10;
+        float targetPos[3] = {0, 0, 0};
 		m_guiHelper->resetCamera(dist, yaw, pitch, targetPos[0], targetPos[1], targetPos[2]);
 	}
     
     void stepSimulation(float deltaTime)
     {
-		m_linearElasticity->setPoissonRatio(nu);
-		m_linearElasticity->setYoungsModulus(E);
-		m_linearElasticity->setDamping(damping_alpha, damping_beta);
+//		m_neohookean->setPoissonRatio(nu);
+//		m_neohookean->setYoungsModulus(E);
+//		m_neohookean->setDamping(damping);
         //use a smaller internal timestep, there are stability issues
-        float internalTimeStep = 1. / 240;
-        m_dynamicsWorld->stepSimulation(deltaTime, 4, internalTimeStep);
+        deltaTime = 1. / 60.f;
+        float stepTime = 1. / (250*50);
+        
+        m_dynamicsWorld->stepSimulation(deltaTime, deltaTime/stepTime, stepTime);
+    
     }
     
     void createStaticBox(const btVector3& halfEdge, const btVector3& translation)
@@ -104,28 +107,30 @@ public:
     
     void Ctor_RbUpStack(int count)
     {
-        float mass = 2;
-        
-        btCompoundShape* cylinderCompound = new btCompoundShape;
-        btCollisionShape* cylinderShape = new btCylinderShapeX(btVector3(2, .5, .5));
-        btCollisionShape* boxShape = new btBoxShape(btVector3(2, .5, .5));
-        btTransform localTransform;
-        localTransform.setIdentity();
-        cylinderCompound->addChildShape(localTransform, boxShape);
-        btQuaternion orn(SIMD_HALF_PI, 0, 0);
-        localTransform.setRotation(orn);
-        //    localTransform.setOrigin(btVector3(1,1,1));
-        cylinderCompound->addChildShape(localTransform, cylinderShape);
+        float mass = 0.002;
+//
+//        btCompoundShape* cylinderCompound = new btCompoundShape;
+//        btCollisionShape* cylinderShape = new btCylinderShapeX(btVector3(2, .5, .5));
+//        btCollisionShape* boxShape = new btBoxShape(btVector3(2, .5, .5));
+//        btTransform localTransform;
+//        localTransform.setIdentity();
+//        cylinderCompound->addChildShape(localTransform, boxShape);
+//        btQuaternion orn(SIMD_HALF_PI, 0, 0);
+//        localTransform.setRotation(orn);
+//        //    localTransform.setOrigin(btVector3(1,1,1));
+//        cylinderCompound->addChildShape(localTransform, cylinderShape);
         
         btCollisionShape* shape[] = {
-            new btBoxShape(btVector3(1, 1, 1)),
+            new btSphereShape(.1),
+//            new btBoxShape(btVector3(1,1,1)),
         };
         static const int nshapes = sizeof(shape) / sizeof(shape[0]);
         for (int i = 0; i < count; ++i)
         {
             btTransform startTransform;
             startTransform.setIdentity();
-            startTransform.setOrigin(btVector3(i, 10 + 2 * i, i-1));
+            startTransform.setOrigin(btVector3(0, 5 * i + .4, 0));
+//            shape[0]->setMargin(1);
             createRigidBody(mass, startTransform, shape[i % nshapes]);
         }
     }
@@ -164,112 +169,100 @@ void VolumetricDeformable::initPhysics()
 	m_solver = sol;
 
 	m_dynamicsWorld = new btDeformableMultiBodyDynamicsWorld(m_dispatcher, m_broadphase, sol, m_collisionConfiguration, deformableBodySolver);
-    btVector3 gravity = btVector3(0, -100, 0);
+    btVector3 gravity = btVector3(0, -10, 0);
 	m_dynamicsWorld->setGravity(gravity);
     getDeformableDynamicsWorld()->getWorldInfo().m_gravity = gravity;
 	getDeformableDynamicsWorld()->getWorldInfo().m_sparsesdf.setDefaultVoxelsz(0.25);
 	getDeformableDynamicsWorld()->getWorldInfo().m_sparsesdf.Reset();
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
 
-    {
-        ///create a ground
-        btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(50.), btScalar(150.)));
-        m_collisionShapes.push_back(groundShape);
 
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, -50, 0));
-        groundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0.0));
-        //We can also use DemoApplication::localCreateRigidBody, but for clarity it is provided here:
-        btScalar mass(0.);
-        //rigidbody is dynamic if and only if mass is non zero, otherwise static
-        bool isDynamic = (mass != 0.f);
-        btVector3 localInertia(0, 0, 0);
-        if (isDynamic)
-            groundShape->calculateLocalInertia(mass, localInertia);
-        //using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setFriction(1);
-
-        //add the ground to the dynamics world
-        m_dynamicsWorld->addRigidBody(body);
-    }
-    
-    createStaticBox(btVector3(1, 5, 5), btVector3(-5,0,0));
-    createStaticBox(btVector3(1, 5, 5), btVector3(5,0,0));
-    createStaticBox(btVector3(5, 5, 1), btVector3(0,0,5));
-    createStaticBox(btVector3(5, 5, 1), btVector3(0,0,-5));
-    
-    // create volumetric soft body
-    {
-        btSoftBody* psb = btSoftBodyHelpers::CreateFromTetGenData(getDeformableDynamicsWorld()->getWorldInfo(),
-                                                                  TetraCube::getElements(),
-                                                                  0,
-                                                                  TetraCube::getNodes(),
-                                                                  false, true, true);
-        getDeformableDynamicsWorld()->addSoftBody(psb);
-        psb->scale(btVector3(2, 2, 2));
-        psb->translate(btVector3(0, 5, 0));
-        psb->getCollisionShape()->setMargin(0.1);
-        psb->setTotalMass(0.5);
-        psb->m_cfg.kKHR = 1; // collision hardness with kinematic objects
-        psb->m_cfg.kCHR = 1; // collision hardness with rigid body
-		psb->m_cfg.kDF = 2;
-        psb->m_cfg.collisions = btSoftBody::fCollision::SDF_RD;
-        psb->m_cfg.collisions |= btSoftBody::fCollision::SDF_RDN;
-		psb->m_sleepingThreshold = 0;
-        btSoftBodyHelpers::generateBoundaryFaces(psb);
-        btDeformableGravityForce* gravity_force =  new btDeformableGravityForce(gravity);
-        getDeformableDynamicsWorld()->addForce(psb, gravity_force);
-        m_forces.push_back(gravity_force);
-        
-        btDeformableLinearElasticityForce* linearElasticity = new btDeformableLinearElasticityForce(100,100,0.01);
-		m_linearElasticity = linearElasticity;
-        getDeformableDynamicsWorld()->addForce(psb, linearElasticity);
-        m_forces.push_back(linearElasticity);
-    }
-    getDeformableDynamicsWorld()->setImplicit(true);
-    getDeformableDynamicsWorld()->setLineSearch(false);
-    getDeformableDynamicsWorld()->setUseProjection(true);
-    getDeformableDynamicsWorld()->getSolverInfo().m_deformable_erp = 0.3;
-    getDeformableDynamicsWorld()->getSolverInfo().m_deformable_maxErrorReduction = btScalar(200);
-    getDeformableDynamicsWorld()->getSolverInfo().m_leastSquaresResidualThreshold = 1e-3;
-    getDeformableDynamicsWorld()->getSolverInfo().m_splitImpulse = true;
-    getDeformableDynamicsWorld()->getSolverInfo().m_numIterations = 100;
+    getDeformableDynamicsWorld()->getSolverInfo().m_TGS_steps = 0;
+    getDeformableDynamicsWorld()->getSolverInfo().m_numIterations = 1;
+    getDeformableDynamicsWorld()->getSolverInfo().m_erp2 = 0.08f;
     // add a few rigid bodies
-    Ctor_RbUpStack(4);
+    Ctor_RbUpStack(0);
+    
+    //load desk from urdf file
+    {
+        int flags = 0;
+        double globalScaling = 1;
+        char m_fileName[1024] = "planeMesh.urdf";
+        BulletURDFImporter u2b(m_guiHelper, 0, 0, globalScaling, flags);
+        bool loadOk = u2b.loadURDF(m_fileName);
+        if(loadOk){
+            btTransform trans;
+            trans.setIdentity();
+            trans.setRotation(btQuaternion(btVector3(1,0,0), -SIMD_PI*0.5));
+//            trans.setOrigin(btVector3(0,-1,0));
+            MyMultiBodyCreator creation(m_guiHelper);
+            
+            bool m_useMultiBody = true;
+            ConvertURDF2Bullet(u2b, creation, trans, m_dynamicsWorld, m_useMultiBody, u2b.getPathPrefix());
+            for (int i = 0; i < u2b.getNumAllocatedCollisionShapes(); i++)
+            {
+                m_collisionShapes.push_back(u2b.getAllocatedCollisionShape(i));
+            }
+            for (int i = 0; i < m_dynamicsWorld->getNumMultiBodyConstraints(); i++)
+            {
+                m_dynamicsWorld->getMultiBodyConstraint(i)->finalizeMultiDof();
+            }
+            
+        }
+        
+    }
+    // create a rigidbody from urdf file
+    if(1)
+     {
+         int flags = 0;
+         double globalScaling = 1;
+         char m_fileName[1024] = "cup/coffee_cup.urdf";
+         BulletURDFImporter u2b(m_guiHelper, 0, 0, globalScaling, flags);
+         bool loadOk = u2b.loadURDF(m_fileName);
+         if(loadOk){
+             btTransform identityTrans;
+             identityTrans.setIdentity();
+             identityTrans.setRotation(btQuaternion(btVector3(1,0,0), -0.5*SIMD_PI));
+//             identityTrans.setRotation(btQuaternion(btVector3(0,1,0), 1*SIMD_PI));
+             identityTrans.setOrigin(btVector3(0,0.2,0));
+             MyMultiBodyCreator creation(m_guiHelper);
+
+             bool m_useMultiBody = true;
+             ConvertURDF2Bullet(u2b, creation, identityTrans, m_dynamicsWorld, m_useMultiBody, u2b.getPathPrefix());
+             for (int i = 0; i < u2b.getNumAllocatedCollisionShapes(); i++)
+             {
+                 m_collisionShapes.push_back(u2b.getAllocatedCollisionShape(i));
+             }
+             for (int i = 0; i < m_dynamicsWorld->getNumMultiBodyConstraints(); i++)
+                 {
+                     m_dynamicsWorld->getMultiBodyConstraint(i)->finalizeMultiDof();
+                 }
+
+         }
+     }
 	m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
 	
 	{
 		SliderParams slider("Young's Modulus", &E);
 		slider.m_minVal = 0;
-		slider.m_maxVal = 2000;
+		slider.m_maxVal = 50;
 		if (m_guiHelper->getParameterInterface())
 			m_guiHelper->getParameterInterface()->registerSliderFloatParameter(slider);
 	}
 	{
 		SliderParams slider("Poisson Ratio", &nu);
 		slider.m_minVal = 0.05;
-		slider.m_maxVal = 0.49;
+		slider.m_maxVal = 0.40;
 		if (m_guiHelper->getParameterInterface())
 			m_guiHelper->getParameterInterface()->registerSliderFloatParameter(slider);
 	}
 	{
-		SliderParams slider("Mass Damping", &damping_alpha);
-		slider.m_minVal = 0;
-		slider.m_maxVal = 1;
+		SliderParams slider("Damping", &damping);
+		slider.m_minVal = 0.01;
+		slider.m_maxVal = 0.02;
 		if (m_guiHelper->getParameterInterface())
 			m_guiHelper->getParameterInterface()->registerSliderFloatParameter(slider);
 	}
-    {
-        SliderParams slider("Stiffness Damping", &damping_beta);
-        slider.m_minVal = 0;
-        slider.m_maxVal = 0.1;
-        if (m_guiHelper->getParameterInterface())
-            m_guiHelper->getParameterInterface()->registerSliderFloatParameter(slider);
-    }
 }
 
 void VolumetricDeformable::exitPhysics()

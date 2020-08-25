@@ -57,6 +57,7 @@ class btDeformableMultiBodyDynamicsWorld : public btMultiBodyDynamicsWorld
 
 protected:
 	virtual void internalSingleStepSimulation(btScalar timeStep);
+	virtual void internalSingleStepSimulationTGS(btScalar timeStep);
 
 	virtual void integrateTransforms(btScalar timeStep);
 

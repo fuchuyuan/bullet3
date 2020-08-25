@@ -39,6 +39,7 @@ The algorithm also closely resembles the one in http://physbam.stanford.edu/~fed
 #include "btDeformableBodySolver.h"
 #include "LinearMath/btQuickprof.h"
 #include "btSoftBodyInternals.h"
+#include "LinearMath/btScalar.h"
 btDeformableMultiBodyDynamicsWorld::btDeformableMultiBodyDynamicsWorld(btDispatcher* dispatcher, btBroadphaseInterface* pairCache, btDeformableMultiBodyConstraintSolver* constraintSolver, btCollisionConfiguration* collisionConfiguration, btDeformableBodySolver* deformableBodySolver)
 	: btMultiBodyDynamicsWorld(dispatcher, pairCache, (btMultiBodyConstraintSolver*)constraintSolver, collisionConfiguration),
 	  m_deformableBodySolver(deformableBodySolver),
@@ -75,6 +76,10 @@ btDeformableMultiBodyDynamicsWorld::~btDeformableMultiBodyDynamicsWorld()
 void btDeformableMultiBodyDynamicsWorld::internalSingleStepSimulation(btScalar timeStep)
 {
 	BT_PROFILE("internalSingleStepSimulation");
+
+	if ((getSolverInfo().m_solverMode & SOLVER_USE_TGS) && getSolverInfo().m_TGS_steps != 0)
+		return internalSingleStepSimulationTGS(timeStep);
+
 	if (0 != m_internalPreTickCallback)
 	{
 		(*m_internalPreTickCallback)(this, timeStep);
@@ -106,6 +111,58 @@ void btDeformableMultiBodyDynamicsWorld::internalSingleStepSimulation(btScalar t
 	performGeometricCollisions(timeStep);
 
 	integrateTransforms(timeStep);
+
+	///update vehicle simulation
+	btMultiBodyDynamicsWorld::updateActions(timeStep);
+
+	updateActivationState(timeStep);
+	// End solver-wise simulation step
+	// ///////////////////////////////
+}
+
+void btDeformableMultiBodyDynamicsWorld::internalSingleStepSimulationTGS(btScalar timeStep)
+{
+	BT_PROFILE("internalSingleStepSimulationTGS");
+
+	if (0 != m_internalPreTickCallback)
+	{
+		(*m_internalPreTickCallback)(this, timeStep);
+	}
+
+	// reinitialize deformable solver. Increase internal timer. Ignore this for now.
+	reinitialize(timeStep);
+
+	///perform collision detection that involves rigid/multi bodies.
+	btMultiBodyDynamicsWorld::performDiscreteCollisionDetection();
+	btMultiBodyDynamicsWorld::calculateSimulationIslands();
+	setupConstraints();
+
+	btAssert(getSolverInfo().m_TGS_steps != 0);
+	int TGS_steps = getSolverInfo().m_TGS_steps;
+	btScalar TGS_timestep = timeStep / TGS_steps;
+	// set dt every step simulation
+	getSolverInfo().m_timeStep = TGS_timestep;
+
+	beforeSolverCallbacks(TGS_timestep);
+
+	for (int i = 0; i < TGS_steps; i++)
+	{
+		//        if(i==0 || i==TGS_steps)
+		//            printf("stepping TGS %d \n", i);
+		// add gravity to velocity of rigid and multi bodys
+		applyRigidBodyGravity(TGS_timestep);
+
+		///apply gravity and explicit force to velocity, predict motion
+		// This steps seems uncessary
+		// predictUnconstraintMotion(TGS_timestep);
+
+		///solve contact constraints and then deformable bodies momemtum equation
+		solveContactConstraints();
+
+		integrateTransforms(TGS_timestep);
+	}
+
+	afterSolverCallbacks(TGS_timestep);
 
 	///update vehicle simulation
 	btMultiBodyDynamicsWorld::updateActions(timeStep);

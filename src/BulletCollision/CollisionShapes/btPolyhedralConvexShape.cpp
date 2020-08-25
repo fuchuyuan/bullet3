@@ -499,7 +499,8 @@ btPolyhedralConvexAabbCachingShape::btPolyhedralConvexAabbCachingShape()
 
 void btPolyhedralConvexAabbCachingShape::getAabb(const btTransform& trans, btVector3& aabbMin, btVector3& aabbMax) const
 {
-	getNonvirtualAabb(trans, aabbMin, aabbMax, getMargin());
+//	getNonvirtualAabb(trans, aabbMin, aabbMax, getMargin());
+    getNonvirtualAabb(trans, aabbMin, aabbMax, 0.01);
 }
 
 void btPolyhedralConvexAabbCachingShape::recalcLocalAabb()

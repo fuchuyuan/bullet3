@@ -23,7 +23,7 @@ subject to the following restrictions:
 #define btCollisionObjectData btCollisionObjectFloatData
 #endif
 
-btScalar gContactBreakingThreshold = btScalar(0.02);
+btScalar gContactBreakingThreshold = btScalar(0.12);
 ContactDestroyedCallback gContactDestroyedCallback = 0;
 ContactProcessedCallback gContactProcessedCallback = 0;
 ContactStartedCallback gContactStartedCallback = 0;
@@ -244,6 +244,16 @@ btScalar btPersistentManifold::getContactBreakingThreshold() const
 	return m_contactBreakingThreshold;
 }
 
+void btPersistentManifold::recomputeContactPoints(const btTransform& trA, const btTransform& trB){
+    int i = 0;
+    for (i = getNumContacts() - 1; i >= 0; i--)
+    {
+        btManifoldPoint& manifoldPoint = m_pointCache[i];
+        manifoldPoint.m_positionWorldOnA = trA(manifoldPoint.m_localPointA);
+        manifoldPoint.m_positionWorldOnB = trB(manifoldPoint.m_localPointB);
+        manifoldPoint.m_distance1 = (manifoldPoint.m_positionWorldOnA - manifoldPoint.m_positionWorldOnB).dot(manifoldPoint.m_normalWorldOnB);
+    }
+}
 void btPersistentManifold::refreshContactPoints(const btTransform& trA, const btTransform& trB)
 {
 	int i;

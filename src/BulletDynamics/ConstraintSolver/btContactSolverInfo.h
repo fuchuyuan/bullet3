@@ -4,8 +4,8 @@ Copyright (c) 2003-2006 Erwin Coumans  http://continuousphysics.com/Bullet/
 
 This software is provided 'as-is', without any express or implied warranty.
 In no event will the authors be held liable for any damages arising from the use of this software.
-Permission is granted to anyone to use this software for any purpose, 
-including commercial applications, and to alter it and redistribute it freely, 
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it freely,
 subject to the following restrictions:
 
 1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
@@ -32,6 +32,7 @@ enum btSolverMode
 	SOLVER_ALLOW_ZERO_LENGTH_FRICTION_DIRECTIONS = 1024,
 	SOLVER_DISABLE_IMPLICIT_CONE_FRICTION = 2048,
 	SOLVER_USE_ARTICULATED_WARMSTARTING = 4096,
+	SOLVER_USE_TGS = 8192,
 };
 
 struct btContactSolverInfoData
@@ -43,15 +44,15 @@ struct btContactSolverInfoData
 	btScalar m_restitution;
 	int m_numIterations;
 	btScalar m_maxErrorReduction;
-	btScalar m_sor;          //successive over-relaxation term
-	btScalar m_erp;          //error reduction for non-contact constraints
-	btScalar m_erp2;         //error reduction for contact constraints
-	btScalar m_deformable_erp;          //error reduction for deformable constraints
-	btScalar m_deformable_cfm;          //constraint force mixing for deformable constraints
-	btScalar m_deformable_maxErrorReduction; // maxErrorReduction for deformable contact
-	btScalar m_globalCfm;    //constraint force mixing for contacts and non-contacts
-	btScalar m_frictionERP;  //error reduction for friction constraints
-	btScalar m_frictionCFM;  //constraint force mixing for friction constraints
+	btScalar m_sor;                           //successive over-relaxation term
+	btScalar m_erp;                           //error reduction for non-contact constraints
+	btScalar m_erp2;                          //error reduction for contact constraints
+	btScalar m_deformable_erp;                //error reduction for deformable constraints
+	btScalar m_deformable_cfm;                //constraint force mixing for deformable constraints
+	btScalar m_deformable_maxErrorReduction;  // maxErrorReduction for deformable contact
+	btScalar m_globalCfm;                     //constraint force mixing for contacts and non-contacts
+	btScalar m_frictionERP;                   //error reduction for friction constraints
+	btScalar m_frictionCFM;                   //constraint force mixing for friction constraints
 
 	int m_splitImpulse;
 	btScalar m_splitImpulsePenetrationThreshold;
@@ -70,6 +71,7 @@ struct btContactSolverInfoData
 	bool m_jointFeedbackInJointFrame;
 	int m_reportSolverAnalytics;
 	int m_numNonContactInnerIterations;
+	int m_TGS_steps;
 };
 
 struct btContactSolverInfo : public btContactSolverInfoData
@@ -96,20 +98,22 @@ struct btContactSolverInfo : public btContactSolverInfoData
 		m_splitImpulsePenetrationThreshold = -.04f;
 		m_splitImpulseTurnErp = 0.1f;
 		m_linearSlop = btScalar(0.0);
-		m_warmstartingFactor = btScalar(0.85);
-		m_articulatedWarmstartingFactor = btScalar(0.85);
+		m_warmstartingFactor = btScalar(0);
+		m_articulatedWarmstartingFactor = btScalar(0);
 		//m_solverMode =  SOLVER_USE_WARMSTARTING |  SOLVER_SIMD | SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION|SOLVER_USE_2_FRICTION_DIRECTIONS|SOLVER_ENABLE_FRICTION_DIRECTION_CACHING;// | SOLVER_RANDMIZE_ORDER;
-		m_solverMode = SOLVER_USE_WARMSTARTING | SOLVER_SIMD;  // | SOLVER_RANDMIZE_ORDER;
-		m_restingContactRestitutionThreshold = 2;              //unused as of 2.81
-		m_minimumSolverBatchSize = 128;                        //try to combine islands until the amount of constraints reaches this limit
-		m_maxGyroscopicForce = 100.f;                          ///it is only used for 'explicit' version of gyroscopic force
-		m_singleAxisRollingFrictionThreshold = 1e30f;          ///if the velocity is above this threshold, it will use a single constraint row (axis), otherwise 3 rows.
+		m_solverMode = SOLVER_SIMD | SOLVER_USE_TGS;   // | SOLVER_RANDMIZE_ORDER;
+													   //         m_solverMode = SOLVER_USE_WARMSTARTING | SOLVER_SIMD;  // | SOLVER_RANDMIZE_ORDER;
+		m_restingContactRestitutionThreshold = 2;      //unused as of 2.81
+		m_minimumSolverBatchSize = 128;                //try to combine islands until the amount of constraints reaches this limit
+		m_maxGyroscopicForce = 100.f;                  ///it is only used for 'explicit' version of gyroscopic force
+		m_singleAxisRollingFrictionThreshold = 1e30f;  ///if the velocity is above this threshold, it will use a single constraint row (axis), otherwise 3 rows.
 		m_leastSquaresResidualThreshold = 0.f;
 		m_restitutionVelocityThreshold = 0.2f;  //if the relative velocity is below this threshold, there is zero restitution
 		m_jointFeedbackInWorldSpace = false;
 		m_jointFeedbackInJointFrame = false;
 		m_reportSolverAnalytics = 0;
-		m_numNonContactInnerIterations = 1;   // the number of inner iterations for solving motor constraint in a single iteration of the constraint solve
+		m_numNonContactInnerIterations = 1;  // the number of inner iterations for solving motor constraint in a single iteration of the constraint solve
+		m_TGS_steps = 10;
 	}
 };
 
@@ -171,7 +175,6 @@ struct btContactSolverInfoFloatData
 
 	int m_minimumSolverBatchSize;
 	int m_splitImpulse;
-	
 };
 
 #endif  //BT_CONTACT_SOLVER_INFO
