@@ -358,6 +358,8 @@ SET(BulletExampleBrowser_SRCS
   ../SoftDemo/SoftDemo.h
   ../TGSDemo/Stacking.h
   ../TGSDemo/Stacking.cpp
+  ../TGSDemo/FixedJoints.h
+  ../TGSDemo/FixedJoints.cpp
   ../DeformableDemo/DeformableContact.cpp
   ../DeformableDemo/DeformableContact.h
   ../DeformableDemo/GraspDeformable.cpp
