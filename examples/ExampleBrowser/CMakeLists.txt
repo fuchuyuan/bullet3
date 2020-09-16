@@ -356,6 +356,8 @@ SET(BulletExampleBrowser_SRCS
   ../MultiBody/KinematicMultiBodyExample.cpp
   ../SoftDemo/SoftDemo.cpp
   ../SoftDemo/SoftDemo.h
+  ../TGSDemo/Stacking.h
+  ../TGSDemo/Stacking.cpp
   ../DeformableDemo/DeformableContact.cpp
   ../DeformableDemo/DeformableContact.h
   ../DeformableDemo/GraspDeformable.cpp

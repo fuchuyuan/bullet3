@@ -181,6 +181,7 @@ project "App_BulletExampleBrowser"
 		"../RenderingExamples/*",
 		"../VoronoiFracture/*",
 		"../SoftDemo/*",
+		"../TGSDemo/*",
 		"../DeformableDemo/*",
 		"../RollingFrictionDemo/*",
 		"../rbdl/*",
