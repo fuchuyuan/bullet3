@@ -201,7 +201,7 @@ static ExampleEntry gDefaultExamples[] =
 //ExampleEntry(1, "Spheres & Plane C-API (Bullet3)", "Collision C-API using Bullet 3.x backend", CollisionTutorialBullet2CreateFunc,TUT_SPHERE_PLANE_RTB3),
         ExampleEntry(0, "TGS"),
         ExampleEntry(1, "Stacking", "Stacking different geometries", TGSStackingCreateFunc),
-        ExampleEntry(1, "Fixed joints", "A row of boxes joint by fixed joint", TGSFixedJointsCreateFunc),
+        ExampleEntry(1, "Joint limit", "A row of boxes joint by revolute joint with joint limtis", TGSFixedJointsCreateFunc),
         ExampleEntry(0, "Deformabe Body"),
         ExampleEntry(1, "Deformable Self Collision", "Deformable Self Collision", DeformableSelfCollisionCreateFunc),
         ExampleEntry(1, "Deformable-Deformable Contact", "Deformable contact", DeformableContactCreateFunc),
