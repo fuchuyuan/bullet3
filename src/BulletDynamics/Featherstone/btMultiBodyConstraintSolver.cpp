@@ -1263,6 +1263,9 @@ void btMultiBodyConstraintSolver::convertMultiBodyContact(btPersistentManifold* 
 
 	colObj0 = (btCollisionObject*)manifold->getBody0();
 	colObj1 = (btCollisionObject*)manifold->getBody1();
+    
+    manifold->recomputeContactPoints(colObj0->getWorldTransform(), colObj1->getWorldTransform());
+
 
 	int solverBodyIdA = mbA ? -1 : getOrInitSolverBody(*colObj0, infoGlobal.m_timeStep);
 	int solverBodyIdB = mbB ? -1 : getOrInitSolverBody(*colObj1, infoGlobal.m_timeStep);
@@ -1281,8 +1284,13 @@ void btMultiBodyConstraintSolver::convertMultiBodyContact(btPersistentManifold* 
 	{
 		btManifoldPoint& cp = manifold->getContactPoint(j);
 
-		if (cp.getDistance() <= manifold->getContactProcessingThreshold())
+		if (cp.getDistance() <= 0.02 /*manifold->getContactProcessingThreshold()*/)
 		{
+//            if (cp.getDistance() < -0.00005)
+//            {
+//                printf("penetrating! manifold has %d contacts\n", manifold->getNumContacts());
+//                
+//            }
 			btScalar relaxation;
 
 			int frictionIndex = m_multiBodyNormalContactConstraints.size();

@@ -32,6 +32,7 @@ enum btSolverMode
 	SOLVER_ALLOW_ZERO_LENGTH_FRICTION_DIRECTIONS = 1024,
 	SOLVER_DISABLE_IMPLICIT_CONE_FRICTION = 2048,
 	SOLVER_USE_ARTICULATED_WARMSTARTING = 4096,
+    SOLVER_USE_TGS = 8192,
 };
 
 struct btContactSolverInfoData
@@ -70,6 +71,7 @@ struct btContactSolverInfoData
 	bool m_jointFeedbackInJointFrame;
 	int m_reportSolverAnalytics;
 	int m_numNonContactInnerIterations;
+    int m_TGS_steps;
 };
 
 struct btContactSolverInfo : public btContactSolverInfoData
@@ -99,7 +101,8 @@ struct btContactSolverInfo : public btContactSolverInfoData
 		m_warmstartingFactor = btScalar(0.85);
 		m_articulatedWarmstartingFactor = btScalar(0.85);
 		//m_solverMode =  SOLVER_USE_WARMSTARTING |  SOLVER_SIMD | SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION|SOLVER_USE_2_FRICTION_DIRECTIONS|SOLVER_ENABLE_FRICTION_DIRECTION_CACHING;// | SOLVER_RANDMIZE_ORDER;
-		m_solverMode = SOLVER_USE_WARMSTARTING | SOLVER_SIMD;  // | SOLVER_RANDMIZE_ORDER;
+//		m_solverMode = SOLVER_USE_WARMSTARTING | SOLVER_SIMD;  // | SOLVER_RANDMIZE_ORDER;
+        m_solverMode = SOLVER_USE_TGS | SOLVER_SIMD;
 		m_restingContactRestitutionThreshold = 2;              //unused as of 2.81
 		m_minimumSolverBatchSize = 128;                        //try to combine islands until the amount of constraints reaches this limit
 		m_maxGyroscopicForce = 100.f;                          ///it is only used for 'explicit' version of gyroscopic force
@@ -110,6 +113,7 @@ struct btContactSolverInfo : public btContactSolverInfoData
 		m_jointFeedbackInJointFrame = false;
 		m_reportSolverAnalytics = 0;
 		m_numNonContactInnerIterations = 1;   // the number of inner iterations for solving motor constraint in a single iteration of the constraint solve
+        m_TGS_steps = 0;
 	}
 };
 
@@ -140,6 +144,8 @@ struct btContactSolverInfoDoubleData
 	int m_minimumSolverBatchSize;
 	int m_splitImpulse;
 	char m_padding[4];
+    
+    int m_TGS_steps;
 };
 ///do not change those serialization structures, it requires an updated sBulletDNAstr/sBulletDNAstr64
 struct btContactSolverInfoFloatData
@@ -172,6 +178,7 @@ struct btContactSolverInfoFloatData
 	int m_minimumSolverBatchSize;
 	int m_splitImpulse;
 	
+    int m_TGS_steps;
 };
 
 #endif  //BT_CONTACT_SOLVER_INFO

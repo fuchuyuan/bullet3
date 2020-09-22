@@ -29,6 +29,9 @@
 class TGSFixedJoints : public CommonDeformableBodyBase
 {
 public:
+    int internalSteps = 100;
+    int iterations = 10;
+    int tgsSteps = 0;
 	TGSFixedJoints(struct GUIHelperInterface* helper)
 		: CommonDeformableBodyBase(helper)
 	{
@@ -46,16 +49,14 @@ public:
 	{
 		float dist = 5;
 		float pitch = -25;
-		float yaw = 10;
+		float yaw = 30;
 		float targetPos[3] = {0, 0.4, 0};
 		m_guiHelper->resetCamera(dist, yaw, pitch, targetPos[0], targetPos[1], targetPos[2]);
 	}
 
 	void stepSimulation(float deltaTime)
 	{
-		//use a smaller internal timestep, there are stability issues
-		float internalTimeStep = 1. / 240.f;
-		m_dynamicsWorld->stepSimulation(deltaTime, 4, internalTimeStep);
+		m_dynamicsWorld->stepSimulation(1.0/internalSteps, 0, 1.0/internalSteps);
 	}
 
 	void createMultibody(btScalar mass, const btTransform& transform, btCollisionShape* collisionShape, bool floating = false, bool canSleep = false)
@@ -73,7 +74,7 @@ public:
 		pMultiBody->setWorldToBaseRot(transform.getRotation());
 		pMultiBody->setCanSleep(canSleep);
 
-		btScalar friction = 0.1;
+		btScalar friction = 0;
 		{
 			btMultiBodyLinkCollider* col = new btMultiBodyLinkCollider(pMultiBody, -1);
 			col->setCollisionShape(collisionShape);
@@ -155,6 +156,11 @@ void TGSFixedJoints::initPhysics()
 
 	getDeformableDynamicsWorld()->setImplicit(false);
 	getDeformableDynamicsWorld()->setLineSearch(false);
+
+    getDeformableDynamicsWorld()->getSolverInfo().m_timeStep = 1.f /internalSteps;
+    getDeformableDynamicsWorld()->getSolverInfo().m_numIterations = iterations;
+    getDeformableDynamicsWorld()->getSolverInfo().m_TGS_steps = tgsSteps;
+
 	m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
 }
 
@@ -245,15 +251,13 @@ btMultiBody* TGSFixedJoints::createFeatherstoneMultiBody_testMultiDof(btMultiBod
 
 	for (int i = 0; i < numLinks; ++i)
 	{
-		linkMass *= 2;
+//		linkMass *= 2;
 		pMultiBody->setupRevolute(i, linkMass, linkInertiaDiag, i - 1, quat0, hingeJointAxis, parentComToCurrentPivot, currentPivotToCurrentCom, false);
 		btMultiBodyConstraint* con = new btMultiBodyJointLimitConstraint(pMultiBody, i, 0, 0);
 		pWorld->addMultiBodyConstraint(con);
 	}
 
 	pMultiBody->finalizeMultiDof();
-
-	///
 	pWorld->addMultiBody(pMultiBody);
 	///
 	return pMultiBody;

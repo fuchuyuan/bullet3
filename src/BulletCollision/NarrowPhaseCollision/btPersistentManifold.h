@@ -244,6 +244,8 @@ public:
 	}
 	/// calculated new worldspace coordinates and depth, and reject points that exceed the collision margin
 	void refreshContactPoints(const btTransform& trA, const btTransform& trB);
+    
+    void recomputeContactPoints(const btTransform& trA, const btTransform& trB);
 
 	SIMD_FORCE_INLINE void clearManifold()
 	{

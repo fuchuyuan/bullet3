@@ -27,6 +27,9 @@
 ///The TGSStacking shows contact between deformable objects and rigid objects.
 class TGSStacking : public CommonDeformableBodyBase
 {
+    int internalSteps = 240;
+    int iterations = 1;
+    int tgsSteps = 10;
 public:
 	TGSStacking(struct GUIHelperInterface* helper)
 		: CommonDeformableBodyBase(helper)
@@ -41,18 +44,18 @@ public:
 
 	void resetCamera()
 	{
-		float dist = 5;
-		float pitch = -25;
-		float yaw = 100;
-		float targetPos[3] = {0, 0.4, 0};
+		float dist = 1;
+		float pitch = 0;
+		float yaw = 0;
+		float targetPos[3] = {0, 0.2, 0};
 		m_guiHelper->resetCamera(dist, yaw, pitch, targetPos[0], targetPos[1], targetPos[2]);
 	}
 
 	void stepSimulation(float deltaTime)
 	{
 		//use a smaller internal timestep, there are stability issues
-		float internalTimeStep = 1. / 240.f;
-		m_dynamicsWorld->stepSimulation(deltaTime, 4, internalTimeStep);
+		
+		m_dynamicsWorld->stepSimulation( 1.0/internalSteps, 0 , 1.0/internalSteps);
 	}
 
     void createMultibody(btScalar mass, const btTransform& transform, btCollisionShape* collisionShape, bool floating = false, bool canSleep = false){
@@ -87,7 +90,7 @@ public:
     
 	void Ctor_RbUpStack(int count)
 	{
-		float mass = .2;
+		float mass = .01;
 
 		btCompoundShape* cylinderCompound = new btCompoundShape;
 		btCollisionShape* cylinderShape = new btCylinderShapeX(btVector3(2, .5, .5));
@@ -108,7 +111,7 @@ public:
 		for (int i = 0; i < count; i++)
 		{
 			startTransform.setOrigin(btVector3(0, i*0.2 + 0.1, 0));
-            mass *=4;
+            mass *=100;
 			createMultibody(mass, startTransform, shape[1]);
 		}
 	}
@@ -166,6 +169,10 @@ void TGSStacking::initPhysics()
 	btVector3 gravity = btVector3(0, -10, 0);
 	m_dynamicsWorld->setGravity(gravity);
 	getDeformableDynamicsWorld()->getWorldInfo().m_gravity = gravity;
+    
+    getDeformableDynamicsWorld()->getSolverInfo().m_timeStep = 1.f /internalSteps;
+    getDeformableDynamicsWorld()->getSolverInfo().m_numIterations = iterations;
+    getDeformableDynamicsWorld()->getSolverInfo().m_TGS_steps = tgsSteps;
 
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
 
@@ -181,7 +188,7 @@ void TGSStacking::initPhysics()
         createMultibody(baseMass, trans, box);
     }
 
-	Ctor_RbUpStack(5);
+	Ctor_RbUpStack(2);
 	getDeformableDynamicsWorld()->setImplicit(false);
 	getDeformableDynamicsWorld()->setLineSearch(false);
 	m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
