@@ -43,6 +43,8 @@ protected:
 	int m_tmpNumMultiBodyConstraints;
 
 	btScalar resolveSingleConstraintRowGeneric(const btMultiBodySolverConstraint& c);
+    
+    btScalar resolveSplitPenetrationImpulse(const btMultiBodySolverConstraint& c);
 
 	//solve 2 friction directions and clamp against the implicit friction cone
 	btScalar resolveConeFrictionConstraintRows(const btMultiBodySolverConstraint& cA1, const btMultiBodySolverConstraint& cB);
@@ -85,6 +87,7 @@ protected:
 	virtual btScalar solveGroupCacheFriendlySetup(btCollisionObject * *bodies, int numBodies, btPersistentManifold** manifoldPtr, int numManifolds, btTypedConstraint** constraints, int numConstraints, const btContactSolverInfo& infoGlobal, btIDebugDraw* debugDrawer);
 	//	virtual btScalar solveGroupCacheFriendlyIterations(btCollisionObject** bodies,int numBodies,btPersistentManifold** manifoldPtr, int numManifolds,btTypedConstraint** constraints,int numConstraints,const btContactSolverInfo& infoGlobal,btIDebugDraw* debugDrawer);
 	virtual btScalar solveSingleIteration(int iteration, btCollisionObject** bodies, int numBodies, btPersistentManifold** manifoldPtr, int numManifolds, btTypedConstraint** constraints, int numConstraints, const btContactSolverInfo& infoGlobal, btIDebugDraw* debugDrawer);
+    virtual void solveGroupCacheFriendlySplitImpulseIterations(btCollisionObject** bodies, int numBodies, btPersistentManifold** manifoldPtr, int numManifolds, btTypedConstraint** constraints, int numConstraints, const btContactSolverInfo& infoGlobal, btIDebugDraw* debugDrawer);
 	void applyDeltaVee(btScalar * deltaV, btScalar impulse, int velocityIndex, int ndof);
 	void writeBackSolverBodyToMultiBody(btMultiBodySolverConstraint & constraint, btScalar deltaTime);
 

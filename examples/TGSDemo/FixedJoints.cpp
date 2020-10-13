@@ -29,7 +29,7 @@
 class TGSFixedJoints : public CommonDeformableBodyBase
 {
 public:
-    int internalSteps = 100;
+    int internalSteps = 60;
     int iterations = 10;
     int tgsSteps = 0;
 	TGSFixedJoints(struct GUIHelperInterface* helper)
@@ -56,7 +56,7 @@ public:
 
 	void stepSimulation(float deltaTime)
 	{
-		m_dynamicsWorld->stepSimulation(1.0/internalSteps, 0, 1.0/internalSteps);
+		m_dynamicsWorld->stepSimulation(1.0/60, internalSteps/60.0 + 1 , 1.0/internalSteps);
 	}
 
 	void createMultibody(btScalar mass, const btTransform& transform, btCollisionShape* collisionShape, bool floating = false, bool canSleep = false)
@@ -86,6 +86,7 @@ public:
 			col->setWorldTransform(tr);
 			m_dynamicsWorld->addCollisionObject(col, 2, 1 + 2);
 			col->setFriction(friction);
+            col->setContactProcessingThreshold(0.f);
 			pMultiBody->setBaseCollider(col);
 		}
 	}

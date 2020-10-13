@@ -315,6 +315,102 @@ btScalar btMultiBodyConstraintSolver::resolveSingleConstraintRowGeneric(const bt
 	return deltaVel;
 }
 
+btScalar btMultiBodyConstraintSolver::resolveSplitPenetrationImpulse(const btMultiBodySolverConstraint& c){
+        btScalar deltaImpulse = c.m_rhsPenetration - btScalar(c.m_appliedPushImpulse) * c.m_cfm;
+        btScalar deltaVelADotn = 0;
+        btScalar deltaVelBDotn = 0;
+        btSolverBody* bodyA = 0;
+        btSolverBody* bodyB = 0;
+        int ndofA = 0;
+        int ndofB = 0;
+        if (c.m_multiBodyA)
+        {
+            const btScalar* local_split_v = c.m_multiBodyA->getSplitVelocityVector();
+            ndofA = c.m_multiBodyA->getNumDofs() + 6;
+            for (int i = 0; i < ndofA; ++i)
+                deltaVelADotn += m_data.m_jacobians[c.m_jacAindex + i] * local_split_v[i];
+        }
+        else if (c.m_solverBodyIdA >= 0)
+        {
+            bodyA = &m_tmpSolverBodyPool[c.m_solverBodyIdA];
+            deltaVelADotn += c.m_contactNormal1.dot(bodyA->internalGetPushVelocity()) + c.m_relpos1CrossNormal.dot(bodyA->internalGetTurnVelocity());
+        }
+
+        if (c.m_multiBodyB)
+        {
+            const btScalar* local_split_v = c.m_multiBodyB->getSplitVelocityVector();
+            ndofB = c.m_multiBodyB->getNumDofs() + 6;
+            for (int i = 0; i < ndofB; ++i)
+                deltaVelBDotn += m_data.m_jacobians[c.m_jacBindex + i] * local_split_v[i];
+        }
+        else if (c.m_solverBodyIdB >= 0)
+        {
+            bodyB = &m_tmpSolverBodyPool[c.m_solverBodyIdB];
+            deltaVelBDotn += c.m_contactNormal2.dot(bodyB->internalGetPushVelocity()) + c.m_relpos2CrossNormal.dot(bodyB->internalGetTurnVelocity());
+        }
+
+        deltaImpulse -= deltaVelADotn * c.m_jacDiagABInv;  //m_jacDiagABInv = 1./denom
+        deltaImpulse -= deltaVelBDotn * c.m_jacDiagABInv;
+        const btScalar sum = btScalar(c.m_appliedPushImpulse) + deltaImpulse;
+
+        if (sum < c.m_lowerLimit)
+        {
+            deltaImpulse = c.m_lowerLimit - c.m_appliedImpulse;
+            c.m_appliedPushImpulse = c.m_lowerLimit;
+        }
+        else
+        {
+            c.m_appliedPushImpulse = sum;
+        }
+
+        if (c.m_multiBodyA)
+        {
+            c.m_multiBodyA->applyDeltaSplitVeeMultiDof(&m_data.m_deltaVelocitiesUnitImpulse[c.m_jacAindex], deltaImpulse);
+        }
+        else if (c.m_solverBodyIdA >= 0)
+        {
+            bodyA->internalApplyPushImpulse(c.m_contactNormal1 * bodyA->internalGetInvMass(), c.m_angularComponentA, deltaImpulse);
+        }
+        if (c.m_multiBodyB)
+        {
+           c.m_multiBodyB->applyDeltaSplitVeeMultiDof(&m_data.m_deltaVelocitiesUnitImpulse[c.m_jacBindex], deltaImpulse);
+        }
+        else if (c.m_solverBodyIdB >= 0)
+        {
+            bodyB->internalApplyPushImpulse(c.m_contactNormal2 * bodyB->internalGetInvMass(), c.m_angularComponentB, deltaImpulse);
+        }
+        btScalar deltaVel = deltaImpulse / c.m_jacDiagABInv;
+        return deltaVel;
+}
+
+void btMultiBodyConstraintSolver::solveGroupCacheFriendlySplitImpulseIterations(btCollisionObject** bodies, int numBodies, btPersistentManifold** manifoldPtr, int numManifolds, btTypedConstraint** constraints, int numConstraints, const btContactSolverInfo& infoGlobal, btIDebugDraw* debugDrawer){
+    // split impulse for rigidbody
+    btSequentialImpulseConstraintSolver::solveGroupCacheFriendlySplitImpulseIterations(bodies, numBodies, manifoldPtr, numManifolds, constraints, numConstraints, infoGlobal, debugDrawer);
+    // split impulse for multibody
+    for (int iteration = 0; iteration < infoGlobal.m_numIterations; iteration++){
+        btScalar leastSquaresResidual = 0;
+        for (int j= 0; j < m_multiBodyNormalContactConstraints.size(); j++)
+        {
+            int index = j;  //iteration&1? j0 : m_multiBodyNormalContactConstraints.size()-1-j0;
+            btMultiBodySolverConstraint& constraint = m_multiBodyNormalContactConstraints[index];
+            btScalar residual = resolveSplitPenetrationImpulse(constraint);
+            leastSquaresResidual = btMax(leastSquaresResidual, residual * residual);
+            if (constraint.m_multiBodyA)
+                constraint.m_multiBodyA->setPosUpdated(false);
+            if (constraint.m_multiBodyB)
+                constraint.m_multiBodyB->setPosUpdated(false);
+            if (leastSquaresResidual <= infoGlobal.m_leastSquaresResidualThreshold || iteration >= (infoGlobal.m_numIterations - 1))
+            {
+#ifdef VERBOSE_RESIDUAL_PRINTF
+                if (iteration >= (infoGlobal.m_numIterations - 1))
+                    printf("split impulse residual = %f at iteration #%d\n", leastSquaresResidual, iteration);
+#endif
+                break;
+            }
+        }
+    }
+}
+
 btScalar btMultiBodyConstraintSolver::resolveConeFrictionConstraintRows(const btMultiBodySolverConstraint& cA1, const btMultiBodySolverConstraint& cB)
 {
 	int ndofA = 0;
@@ -809,19 +905,19 @@ void btMultiBodyConstraintSolver::setupMultiBodyContactConstraint(btMultiBodySol
 
 		if (!isFriction)
 		{
-			//	if (!infoGlobal.m_splitImpulse || (penetration > infoGlobal.m_splitImpulsePenetrationThreshold))
+				if (!infoGlobal.m_splitImpulse || (distance > infoGlobal.m_splitImpulsePenetrationThreshold))
 			{
 				//combine position and velocity into rhs
 				solverConstraint.m_rhs = penetrationImpulse + velocityImpulse;
 				solverConstraint.m_rhsPenetration = 0.f;
 			}
-			/*else
+			else
 			{
 				//split position and velocity into rhs and m_rhsPenetration
 				solverConstraint.m_rhs = velocityImpulse;
 				solverConstraint.m_rhsPenetration = penetrationImpulse;
 			}
-			*/
+			
 			solverConstraint.m_lowerLimit = 0;
 			solverConstraint.m_upperLimit = 1e10f;
 		}

@@ -27,13 +27,18 @@
 ///The TGSStacking shows contact between deformable objects and rigid objects.
 class TGSStacking : public CommonDeformableBodyBase
 {
-    int internalSteps = 240;
-    int iterations = 1;
-    int tgsSteps = 10;
+    int internalSteps;
+    int iterations;
+    int tgsSteps;
+    int num_objects;
 public:
 	TGSStacking(struct GUIHelperInterface* helper)
 		: CommonDeformableBodyBase(helper)
 	{
+        internalSteps = 250;
+        iterations = 1;
+        tgsSteps = 100;
+        num_objects = 2;
 	}
 	virtual ~TGSStacking()
 	{
@@ -54,8 +59,9 @@ public:
 	void stepSimulation(float deltaTime)
 	{
 		//use a smaller internal timestep, there are stability issues
-		
-		m_dynamicsWorld->stepSimulation( 1.0/internalSteps, 0 , 1.0/internalSteps);
+        
+//        m_dynamicsWorld->stepSimulation(1.0/60, internalSteps/60.0 + 1 , 1.0/internalSteps);
+        m_dynamicsWorld->stepSimulation(1.0/internalSteps, 1 , 1.0/internalSteps);
 	}
 
     void createMultibody(btScalar mass, const btTransform& transform, btCollisionShape* collisionShape, bool floating = false, bool canSleep = false){
@@ -90,7 +96,7 @@ public:
     
 	void Ctor_RbUpStack(int count)
 	{
-		float mass = .01;
+		float mass = 1;
 
 		btCompoundShape* cylinderCompound = new btCompoundShape;
 		btCollisionShape* cylinderShape = new btCylinderShapeX(btVector3(2, .5, .5));
@@ -102,16 +108,17 @@ public:
 		localTransform.setRotation(orn);
 		cylinderCompound->addChildShape(localTransform, cylinderShape);
 
+        btScalar radius = .1;
 		btCollisionShape* shape[] = {
-			new btBoxShape(btVector3(.1, .1, .1)),
-			new btSphereShape(0.1),
+			new btBoxShape(btVector3(radius, radius, radius)),
+			new btSphereShape(radius),
 			cylinderCompound};
 		btTransform startTransform;
 		startTransform.setIdentity();
 		for (int i = 0; i < count; i++)
 		{
-			startTransform.setOrigin(btVector3(0, i*0.2 + 0.1, 0));
-            mass *=100;
+			startTransform.setOrigin(btVector3(0, i*radius*2 /*+ 1 */ + radius, 0));
+            mass *=10;
 			createMultibody(mass, startTransform, shape[1]);
 		}
 	}
@@ -133,17 +140,6 @@ public:
 	virtual void renderScene()
 	{
 		CommonDeformableBodyBase::renderScene();
-		btDeformableMultiBodyDynamicsWorld* deformableWorld = getDeformableDynamicsWorld();
-
-		for (int i = 0; i < deformableWorld->getSoftBodyArray().size(); i++)
-		{
-			btSoftBody* psb = (btSoftBody*)deformableWorld->getSoftBodyArray()[i];
-			//if (softWorld->getDebugDrawer() && !(softWorld->getDebugDrawer()->getDebugMode() & (btIDebugDraw::DBG_DrawWireframe)))
-			{
-				btSoftBodyHelpers::DrawFrame(psb, deformableWorld->getDebugDrawer());
-				btSoftBodyHelpers::Draw(psb, deformableWorld->getDebugDrawer(), fDrawFlags::Faces);  // deformableWorld->getDrawFlags());
-			}
-		}
 	}
 };
 
@@ -173,6 +169,12 @@ void TGSStacking::initPhysics()
     getDeformableDynamicsWorld()->getSolverInfo().m_timeStep = 1.f /internalSteps;
     getDeformableDynamicsWorld()->getSolverInfo().m_numIterations = iterations;
     getDeformableDynamicsWorld()->getSolverInfo().m_TGS_steps = tgsSteps;
+    getDeformableDynamicsWorld()->getSolverInfo().m_warmstartingFactor = 0.f;
+    getDeformableDynamicsWorld()->getSolverInfo().m_articulatedWarmstartingFactor = 0.f;
+    getDeformableDynamicsWorld()->getSolverInfo().m_linearSlop = 0.f;
+    getDeformableDynamicsWorld()->getSolverInfo().m_splitImpulse = true;
+    getDeformableDynamicsWorld()->getSolverInfo().m_splitImpulsePenetrationThreshold = 0;
+    
 
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
 
@@ -188,7 +190,7 @@ void TGSStacking::initPhysics()
         createMultibody(baseMass, trans, box);
     }
 
-	Ctor_RbUpStack(2);
+	Ctor_RbUpStack(num_objects);
 	getDeformableDynamicsWorld()->setImplicit(false);
 	getDeformableDynamicsWorld()->setLineSearch(false);
 	m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
