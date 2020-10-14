@@ -24,6 +24,7 @@
 #include "../CommonInterfaces/CommonDeformableBodyBase.h"
 #include "../Utils/b3ResourcePath.h"
 
+static int g_constraintSolverType = 0;
 ///The TGSStacking shows contact between deformable objects and rigid objects.
 class TGSStacking : public CommonDeformableBodyBase
 {
@@ -31,13 +32,16 @@ class TGSStacking : public CommonDeformableBodyBase
     int iterations;
     int tgsSteps;
     int num_objects;
+    int steps;
+    bool use_multibody;
+    btMultiBody* objects[10];
 public:
 	TGSStacking(struct GUIHelperInterface* helper)
 		: CommonDeformableBodyBase(helper)
 	{
         internalSteps = 250;
         iterations = 1;
-        tgsSteps = 100;
+        tgsSteps = 10;
         num_objects = 2;
 	}
 	virtual ~TGSStacking()
@@ -62,9 +66,13 @@ public:
         
 //        m_dynamicsWorld->stepSimulation(1.0/60, internalSteps/60.0 + 1 , 1.0/internalSteps);
         m_dynamicsWorld->stepSimulation(1.0/internalSteps, 1 , 1.0/internalSteps);
+        steps ++;
+        if((steps*10) % internalSteps==0)
+            b3Printf("top sphere pos %f %f %f\n", objects[num_objects-1]->getBasePos()[0], objects[num_objects-1]->getBasePos()[1],objects[num_objects-1]->getBasePos()[2]);
+        
 	}
 
-    void createMultibody(btScalar mass, const btTransform& transform, btCollisionShape* collisionShape, bool floating = false, bool canSleep = false){
+    btMultiBody* createMultibody(btScalar mass, const btTransform& transform, btCollisionShape* collisionShape, bool floating = false, bool canSleep = false){
         btVector3 baseInertiaDiag(0.f, 0.f, 0.f);
           if (mass)
           {
@@ -92,6 +100,7 @@ public:
             col->setFriction(friction);
             pMultiBody->setBaseCollider(col);
         }
+        return pMultiBody;
     }
     
 	void Ctor_RbUpStack(int count)
@@ -119,21 +128,17 @@ public:
 		{
 			startTransform.setOrigin(btVector3(0, i*radius*2 /*+ 1 */ + radius, 0));
             mass *=10;
-			createMultibody(mass, startTransform, shape[1]);
+			objects[i] = createMultibody(mass, startTransform, shape[1]);
 		}
 	}
 
 	virtual const btDeformableMultiBodyDynamicsWorld* getDeformableDynamicsWorld() const
 	{
-		///just make it a btSoftRigidDynamicsWorld please
-		///or we will add type checking
 		return (btDeformableMultiBodyDynamicsWorld*)m_dynamicsWorld;
 	}
 
 	virtual btDeformableMultiBodyDynamicsWorld* getDeformableDynamicsWorld()
 	{
-		///just make it a btSoftRigidDynamicsWorld please
-		///or we will add type checking
 		return (btDeformableMultiBodyDynamicsWorld*)m_dynamicsWorld;
 	}
 
@@ -145,6 +150,24 @@ public:
 
 void TGSStacking::initPhysics()
 {
+    steps = 0;
+    if (g_constraintSolverType == 2)
+    {
+        g_constraintSolverType = 0;
+    }
+    switch (g_constraintSolverType++)
+    {
+        case 0:
+            iterations = 10;
+            tgsSteps = 0;
+            b3Printf("Constraint Solver: Sequential Impulse");
+            break;
+        default:
+            iterations = 1;
+            tgsSteps = 10;
+            b3Printf("Constraint Solver: TGS");
+            break;
+    }
 	m_guiHelper->setUpAxis(1);
 
 	///collision configuration contains default setup for memory, collision setup

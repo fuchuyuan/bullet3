@@ -399,14 +399,14 @@ void btMultiBodyConstraintSolver::solveGroupCacheFriendlySplitImpulseIterations(
                 constraint.m_multiBodyA->setPosUpdated(false);
             if (constraint.m_multiBodyB)
                 constraint.m_multiBodyB->setPosUpdated(false);
-            if (leastSquaresResidual <= infoGlobal.m_leastSquaresResidualThreshold || iteration >= (infoGlobal.m_numIterations - 1))
-            {
+        }
+        if (leastSquaresResidual <= infoGlobal.m_leastSquaresResidualThreshold || iteration >= (infoGlobal.m_numIterations - 1))
+        {
 #ifdef VERBOSE_RESIDUAL_PRINTF
-                if (iteration >= (infoGlobal.m_numIterations - 1))
-                    printf("split impulse residual = %f at iteration #%d\n", leastSquaresResidual, iteration);
+            if (iteration >= (infoGlobal.m_numIterations - 1))
+                printf("split impulse residual = %f at iteration #%d\n", leastSquaresResidual, iteration);
 #endif
-                break;
-            }
+            break;
         }
     }
 }
