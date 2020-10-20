@@ -145,12 +145,13 @@ void btDeformableMultiBodyDynamicsWorld::internalSingleStepSimulationTGS(btScala
 
 	beforeSolverCallbacks(TGS_timestep);
 
-	for (int i = 0; i < TGS_steps; i++)
+	for (int iteration = 0;  iteration< TGS_steps; iteration++)
 	{
 		//        if(i==0 || i==TGS_steps)
 		//            printf("stepping TGS %d \n", i);
 		// add gravity to velocity of rigid and multi bodys
 		applyRigidBodyGravity(TGS_timestep);
+        getSolverInfo().m_TGS_iteration = iteration;
 
 		///apply gravity and explicit force to velocity, predict motion
 		// This steps seems uncessary

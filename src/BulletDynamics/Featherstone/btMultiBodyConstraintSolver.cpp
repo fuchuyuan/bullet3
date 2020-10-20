@@ -38,7 +38,7 @@ btScalar btMultiBodyConstraintSolver::solveSingleIteration(int iteration, btColl
 		nonContactResidual = 0;
 		for (int j = 0; j < m_multiBodyNonContactConstraints.size(); j++)
 		{
-			int index = iteration & 1 ? j : m_multiBodyNonContactConstraints.size() - 1 - j;
+			int index = (iteration + infoGlobal.m_TGS_iteration) & 1 ? j : m_multiBodyNonContactConstraints.size() - 1 - j;
 
 			btMultiBodySolverConstraint& constraint = m_multiBodyNonContactConstraints[index];
 
@@ -749,7 +749,14 @@ void btMultiBodyConstraintSolver::setupMultiBodyContactConstraint(btMultiBodySol
 
 		solverConstraint.m_angularComponentB = rb1 ? rb1->getInvInertiaTensorWorld() * -torqueAxis1 * rb1->getAngularFactor() : btVector3(0, 0, 0);
 	}
-
+    if(!isFriction && multiBodyB->getBasePos()[1]>0.2){
+//        printf("contact pos on A %.8f %.8f %.8f\n", pos1[0], pos1[1], pos1[2]);
+//        printf("contact pos on B %.8f %.8f %.8f\n", pos2[0], pos2[1], pos2[2]);
+//        printf("base pos A %.8f %.8f %.8f\n",multiBodyA->getBasePos()[0],multiBodyA->getBasePos()[1], multiBodyA->getBasePos()[2]);
+//        printf("base pos B %.8f %.8f %.8f\n",multiBodyB->getBasePos()[0],multiBodyB->getBasePos()[1], multiBodyB->getBasePos()[2]);
+//        printf("rel pos 1 %.8f %.8f %.8f\n", rel_pos1[0], rel_pos1[1],rel_pos1[2]);
+//        printf("rel pos 2 %.8f %.8f %.8f\n", rel_pos2[0], rel_pos2[1],rel_pos2[2]);
+    }
 	{
 		btVector3 vec;
 		btScalar denom0 = 0.f;
@@ -930,7 +937,11 @@ void btMultiBodyConstraintSolver::setupMultiBodyContactConstraint(btMultiBodySol
 		}
 
 		solverConstraint.m_cfm = cfm * solverConstraint.m_jacDiagABInv;
-	}
+//        if (!isFriction){
+//            printf("velocity error %f, position error %f, penetration %f \n", velocityError, positionalError, distance);
+//        }
+    
+    }
         
 	if (infoGlobal.m_solverMode & SOLVER_USE_ARTICULATED_WARMSTARTING)
 	{
@@ -1376,11 +1387,12 @@ void btMultiBodyConstraintSolver::convertMultiBodyContact(btPersistentManifold* 
 	//only a single rollingFriction per manifold
 	int rollingFriction = 4;
 
+//    printf("%d contacts in manifold\n",manifold->getNumContacts());
 	for (int j = 0; j < manifold->getNumContacts(); j++)
 	{
 		btManifoldPoint& cp = manifold->getContactPoint(j);
 
-		if (cp.getDistance() <= 0.02 /*manifold->getContactProcessingThreshold()*/)
+		if (cp.getDistance() <= manifold->getContactProcessingThreshold())
 		{
 //            if (cp.getDistance() < -0.00005)
 //            {

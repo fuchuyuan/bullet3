@@ -72,6 +72,7 @@ struct btContactSolverInfoData
 	int m_reportSolverAnalytics;
 	int m_numNonContactInnerIterations;
     int m_TGS_steps;
+    int m_TGS_iteration;
 };
 
 struct btContactSolverInfo : public btContactSolverInfoData
@@ -114,6 +115,7 @@ struct btContactSolverInfo : public btContactSolverInfoData
 		m_reportSolverAnalytics = 0;
 		m_numNonContactInnerIterations = 1;   // the number of inner iterations for solving motor constraint in a single iteration of the constraint solve
         m_TGS_steps = 0;
+        m_TGS_iteration = 0;
 	}
 };
 
@@ -146,6 +148,7 @@ struct btContactSolverInfoDoubleData
 	char m_padding[4];
     
     int m_TGS_steps;
+    int m_TGS_iteration;
 };
 ///do not change those serialization structures, it requires an updated sBulletDNAstr/sBulletDNAstr64
 struct btContactSolverInfoFloatData
@@ -179,6 +182,7 @@ struct btContactSolverInfoFloatData
 	int m_splitImpulse;
 	
     int m_TGS_steps;
+    int m_TGS_iteration;
 };
 
 #endif  //BT_CONTACT_SOLVER_INFO

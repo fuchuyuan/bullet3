@@ -24,7 +24,7 @@
 #include "../CommonInterfaces/CommonDeformableBodyBase.h"
 #include "../Utils/b3ResourcePath.h"
 
-static int g_constraintSolverType = 0;
+static int g_constraintSolverType = 1;
 ///The TGSStacking shows contact between deformable objects and rigid objects.
 class TGSStacking : public CommonDeformableBodyBase
 {
@@ -35,6 +35,7 @@ class TGSStacking : public CommonDeformableBodyBase
     int steps;
     bool use_multibody;
     btMultiBody* objects[10];
+    btRigidBody* objects_rigid[10];
 public:
 	TGSStacking(struct GUIHelperInterface* helper)
 		: CommonDeformableBodyBase(helper)
@@ -43,6 +44,7 @@ public:
         iterations = 1;
         tgsSteps = 10;
         num_objects = 2;
+        use_multibody = true;
 	}
 	virtual ~TGSStacking()
 	{
@@ -64,11 +66,15 @@ public:
 	{
 		//use a smaller internal timestep, there are stability issues
         
-//        m_dynamicsWorld->stepSimulation(1.0/60, internalSteps/60.0 + 1 , 1.0/internalSteps);
-        m_dynamicsWorld->stepSimulation(1.0/internalSteps, 1 , 1.0/internalSteps);
+        m_dynamicsWorld->stepSimulation(1.0/60, internalSteps/60.0 + 1 , 1.0/internalSteps);
+//        m_dynamicsWorld->stepSimulation(1.0/internalSteps, 1 , 1.0/internalSteps);
         steps ++;
-        if((steps*10) % internalSteps==0)
-            b3Printf("top sphere pos %f %f %f\n", objects[num_objects-1]->getBasePos()[0], objects[num_objects-1]->getBasePos()[1],objects[num_objects-1]->getBasePos()[2]);
+//        if((steps*10) % internalSteps==0){
+//            if(use_multibody)
+//                b3Printf("top sphere pos %f %f %f\n", objects[num_objects-1]->getBasePos()[0], objects[num_objects-1]->getBasePos()[1],objects[num_objects-1]->getBasePos()[2]);
+//            else
+//                b3Printf("top sphere pos %f %f %f\n", objects_rigid[num_objects-1]->getCenterOfMassPosition()[0], objects_rigid[num_objects-1]->getCenterOfMassPosition()[1], objects_rigid[num_objects-1]->getCenterOfMassPosition()[2]);
+//        }
         
 	}
 
@@ -105,7 +111,7 @@ public:
     
 	void Ctor_RbUpStack(int count)
 	{
-		float mass = 1;
+		float mass = 0.01;
 
 		btCompoundShape* cylinderCompound = new btCompoundShape;
 		btCollisionShape* cylinderShape = new btCylinderShapeX(btVector3(2, .5, .5));
@@ -128,7 +134,12 @@ public:
 		{
 			startTransform.setOrigin(btVector3(0, i*radius*2 /*+ 1 */ + radius, 0));
             mass *=10;
-			objects[i] = createMultibody(mass, startTransform, shape[1]);
+            if(use_multibody){
+                objects[i] = createMultibody(mass, startTransform, shape[0]);}
+            else{
+                objects_rigid[i] = createRigidBody(mass, startTransform, shape[0]);
+//                objects_rigid[i]->setDamping(0.04, 0.04);
+            }
 		}
 	}
 
@@ -151,21 +162,29 @@ public:
 void TGSStacking::initPhysics()
 {
     steps = 0;
-    if (g_constraintSolverType == 2)
+    if (g_constraintSolverType == 3)
     {
         g_constraintSolverType = 0;
     }
-    switch (g_constraintSolverType++)
+    switch (g_constraintSolverType)
     {
         case 0:
             iterations = 10;
             tgsSteps = 0;
+            internalSteps = 250;
             b3Printf("Constraint Solver: Sequential Impulse");
+            break;
+        case 1:
+            iterations = 1;
+            internalSteps = 250;
+            tgsSteps = 10;
+            b3Printf("Constraint Solver: TGS");
             break;
         default:
             iterations = 1;
-            tgsSteps = 10;
-            b3Printf("Constraint Solver: TGS");
+            tgsSteps = 0;
+            internalSteps = 2500;
+            b3Printf("Constraint Solver: Sequential Impulse, substepping");
             break;
     }
 	m_guiHelper->setUpAxis(1);
@@ -195,7 +214,7 @@ void TGSStacking::initPhysics()
     getDeformableDynamicsWorld()->getSolverInfo().m_warmstartingFactor = 0.f;
     getDeformableDynamicsWorld()->getSolverInfo().m_articulatedWarmstartingFactor = 0.f;
     getDeformableDynamicsWorld()->getSolverInfo().m_linearSlop = 0.f;
-    getDeformableDynamicsWorld()->getSolverInfo().m_splitImpulse = true;
+    getDeformableDynamicsWorld()->getSolverInfo().m_splitImpulse = false;
     getDeformableDynamicsWorld()->getSolverInfo().m_splitImpulsePenetrationThreshold = 0;
     
 
@@ -210,7 +229,37 @@ void TGSStacking::initPhysics()
         trans.setIdentity();
         trans.setOrigin(btVector3(0, -25, 0));
         btCollisionShape* box = new btBoxShape(baseHalfExtents);
-        createMultibody(baseMass, trans, box);
+        btCollisionShape* sphere = new btSphereShape(25);
+        if(use_multibody){
+            createMultibody(baseMass, trans, box);
+//            createMultibody(baseMass, trans, sphere);
+        }
+        else{
+            btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));
+                 m_collisionShapes.push_back(groundShape);
+                 btTransform groundTransform;
+                 groundTransform.setIdentity();
+                 groundTransform.setOrigin(btVector3(0, -25, 0));
+                 groundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0.));
+                 //We can also use DemoApplication::localCreateRigidBody, but for clarity it is provided here:
+                 btScalar mass(0.);
+
+                 //rigidbody is dynamic if and only if mass is non zero, otherwise static
+                 bool isDynamic = (mass != 0.f);
+
+                 btVector3 localInertia(0, 0, 0);
+                 if (isDynamic)
+                     groundShape->calculateLocalInertia(mass, localInertia);
+
+                 //using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
+                 btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+                 btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
+                 btRigidBody* body = new btRigidBody(rbInfo);
+                 body->setFriction(1);
+
+                 //add the ground to the dynamics world
+                 m_dynamicsWorld->addRigidBody(body, 1, 1+2);
+        }
     }
 
 	Ctor_RbUpStack(num_objects);
