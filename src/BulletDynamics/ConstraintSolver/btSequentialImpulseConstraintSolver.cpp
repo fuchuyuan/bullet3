@@ -1005,6 +1005,9 @@ void btSequentialImpulseConstraintSolver::convertContact(btPersistentManifold* m
 
 	int solverBodyIdA = getOrInitSolverBody(*colObj0, infoGlobal.m_timeStep);
 	int solverBodyIdB = getOrInitSolverBody(*colObj1, infoGlobal.m_timeStep);
+    
+    if(infoGlobal.m_solverMode & SOLVER_USE_TGS && infoGlobal.m_TGS_steps!=0)
+        manifold->recomputeContactPoints(colObj0->getWorldTransform(), colObj1->getWorldTransform());
 
 	//	btRigidBody* bodyA = btRigidBody::upcast(colObj0);
 	//	btRigidBody* bodyB = btRigidBody::upcast(colObj1);

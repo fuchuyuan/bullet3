@@ -69,7 +69,7 @@ public:
         m_dynamicsWorld->stepSimulation(1.0/60, internalSteps/60.0 + 1 , 1.0/internalSteps);
 //        m_dynamicsWorld->stepSimulation(1.0/internalSteps, 1 , 1.0/internalSteps);
         steps ++;
-//        if((steps*10) % internalSteps==0){
+//        if(steps%10 ==0){
 //            if(use_multibody)
 //                b3Printf("top sphere pos %f %f %f\n", objects[num_objects-1]->getBasePos()[0], objects[num_objects-1]->getBasePos()[1],objects[num_objects-1]->getBasePos()[2]);
 //            else
@@ -133,11 +133,11 @@ public:
 		for (int i = 0; i < count; i++)
 		{
 			startTransform.setOrigin(btVector3(0, i*radius*2 /*+ 1 */ + radius, 0));
-            mass *=10;
+            mass *=100;
             if(use_multibody){
-                objects[i] = createMultibody(mass, startTransform, shape[0]);}
+                objects[i] = createMultibody(mass, startTransform, shape[1]);}
             else{
-                objects_rigid[i] = createRigidBody(mass, startTransform, shape[0]);
+                objects_rigid[i] = createRigidBody(mass, startTransform, shape[1]);
 //                objects_rigid[i]->setDamping(0.04, 0.04);
             }
 		}
@@ -166,7 +166,7 @@ void TGSStacking::initPhysics()
     {
         g_constraintSolverType = 0;
     }
-    switch (g_constraintSolverType)
+    switch (g_constraintSolverType++)
     {
         case 0:
             iterations = 10;
@@ -216,6 +216,7 @@ void TGSStacking::initPhysics()
     getDeformableDynamicsWorld()->getSolverInfo().m_linearSlop = 0.f;
     getDeformableDynamicsWorld()->getSolverInfo().m_splitImpulse = false;
     getDeformableDynamicsWorld()->getSolverInfo().m_splitImpulsePenetrationThreshold = 0;
+    getDeformableDynamicsWorld()->getDispatchInfo().m_deterministicOverlappingPairs = true;
     
 
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
@@ -231,8 +232,8 @@ void TGSStacking::initPhysics()
         btCollisionShape* box = new btBoxShape(baseHalfExtents);
         btCollisionShape* sphere = new btSphereShape(25);
         if(use_multibody){
-            createMultibody(baseMass, trans, box);
-//            createMultibody(baseMass, trans, sphere);
+//            createMultibody(baseMass, trans, box);
+            createMultibody(baseMass, trans, sphere);
         }
         else{
             btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));

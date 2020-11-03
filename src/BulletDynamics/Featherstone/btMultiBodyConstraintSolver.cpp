@@ -56,8 +56,8 @@ btScalar btMultiBodyConstraintSolver::solveSingleIteration(int iteration, btColl
 	//solve featherstone normal contact
 	for (int j0 = 0; j0 < m_multiBodyNormalContactConstraints.size(); j0++)
 	{
-		int index = j0;  //iteration&1? j0 : m_multiBodyNormalContactConstraints.size()-1-j0;
-
+//        int index = (j0 + infoGlobal.m_TGS_iteration) & 1 ? j0 :  m_multiBodyNormalContactConstraints.size() - 1 - j0;
+        int index = j0;
 		btMultiBodySolverConstraint& constraint = m_multiBodyNormalContactConstraints[index];
 		btScalar residual = 0.f;
 
@@ -1391,7 +1391,7 @@ void btMultiBodyConstraintSolver::convertMultiBodyContact(btPersistentManifold* 
 	for (int j = 0; j < manifold->getNumContacts(); j++)
 	{
 		btManifoldPoint& cp = manifold->getContactPoint(j);
-
+//printf("contact %d, distance %f\n", j, cp.getDistance());
 		if (cp.getDistance() <= manifold->getContactProcessingThreshold())
 		{
 //            if (cp.getDistance() < -0.00005)
