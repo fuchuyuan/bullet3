@@ -10,7 +10,7 @@
  2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
  3. This notice may not be removed or altered from any source distribution.
  */
-#include "Stacking.h"
+#include "Cup.h"
 ///btBulletDynamicsCommon.h is the main Bullet include file, contains most common include files.
 #include "btBulletDynamicsCommon.h"
 #include "BulletSoftBody/btDeformableMultiBodyDynamicsWorld.h"
@@ -23,10 +23,13 @@
 
 #include "../CommonInterfaces/CommonDeformableBodyBase.h"
 #include "../Utils/b3ResourcePath.h"
+#include "../Importers/ImportURDFDemo/BulletUrdfImporter.h"
+#include "../Importers/ImportURDFDemo/URDF2Bullet.h"
+#include "../Importers/ImportURDFDemo/MyMultiBodyCreator.h"
 
-static int g_constraintSolverType = 0;
-///The TGSStacking shows contact between deformable objects and rigid objects.
-class TGSStacking : public CommonDeformableBodyBase
+static int g_constraintSolverType = 1;
+
+class TGSCup : public CommonDeformableBodyBase
 {
     int internalSteps;
     int iterations;
@@ -37,16 +40,16 @@ class TGSStacking : public CommonDeformableBodyBase
     btMultiBody* objects[10];
     btRigidBody* objects_rigid[10];
 public:
-	TGSStacking(struct GUIHelperInterface* helper)
+	TGSCup(struct GUIHelperInterface* helper)
 		: CommonDeformableBodyBase(helper)
 	{
         internalSteps = 250;
         iterations = 1;
         tgsSteps = 10;
-        num_objects = 4;
+        num_objects = 2;
         use_multibody = true;
 	}
-	virtual ~TGSStacking()
+	virtual ~TGSCup()
 	{
 	}
 	void initPhysics();
@@ -56,25 +59,17 @@ public:
 	void resetCamera()
 	{
 		float dist = 1;
-		float pitch = 0;
+		float pitch = -20;
 		float yaw = 0;
-		float targetPos[3] = {0, 0.2, 0};
+		float targetPos[3] = {0, 0.8, 0};
 		m_guiHelper->resetCamera(dist, yaw, pitch, targetPos[0], targetPos[1], targetPos[2]);
 	}
 
 	void stepSimulation(float deltaTime)
 	{
-		//use a smaller internal timestep, there are stability issues
-        
         m_dynamicsWorld->stepSimulation(1.0/60, internalSteps/60.0 + 1 , 1.0/internalSteps);
 //        m_dynamicsWorld->stepSimulation(1.0/internalSteps, 1 , 1.0/internalSteps);
         steps ++;
-//        if(steps%10 ==0){
-//            if(use_multibody)
-//                b3Printf("top sphere pos %f %f %f\n", objects[num_objects-1]->getBasePos()[0], objects[num_objects-1]->getBasePos()[1],objects[num_objects-1]->getBasePos()[2]);
-//            else
-//                b3Printf("top sphere pos %f %f %f\n", objects_rigid[num_objects-1]->getCenterOfMassPosition()[0], objects_rigid[num_objects-1]->getCenterOfMassPosition()[1], objects_rigid[num_objects-1]->getCenterOfMassPosition()[2]);
-//        }
         
 	}
 
@@ -108,41 +103,7 @@ public:
         }
         return pMultiBody;
     }
-    
-	void Ctor_RbUpStack(int count)
-	{
-		float mass = 0.01;
-
-		btCompoundShape* cylinderCompound = new btCompoundShape;
-		btCollisionShape* cylinderShape = new btCylinderShapeX(btVector3(2, .5, .5));
-		btCollisionShape* boxShape = new btBoxShape(btVector3(2, .5, .5));
-		btTransform localTransform;
-		localTransform.setIdentity();
-		cylinderCompound->addChildShape(localTransform, boxShape);
-		btQuaternion orn(SIMD_HALF_PI, 0, 0);
-		localTransform.setRotation(orn);
-		cylinderCompound->addChildShape(localTransform, cylinderShape);
-
-        btScalar radius = .1;
-		btCollisionShape* shape[] = {
-			new btBoxShape(btVector3(radius, radius, radius)),
-			new btSphereShape(radius),
-			cylinderCompound};
-		btTransform startTransform;
-		startTransform.setIdentity();
-		for (int i = 0; i < count; i++)
-		{
-			startTransform.setOrigin(btVector3(0, i*radius*2 /*+ 1 */ + radius, 0));
-            mass *= 5;
-            if(use_multibody){
-                objects[i] = createMultibody(mass, startTransform, shape[1]);}
-            else{
-                objects_rigid[i] = createRigidBody(mass, startTransform, shape[1]);
-//                objects_rigid[i]->setDamping(0.04, 0.04);
-            }
-		}
-	}
-
+  
 	virtual const btDeformableMultiBodyDynamicsWorld* getDeformableDynamicsWorld() const
 	{
 		return (btDeformableMultiBodyDynamicsWorld*)m_dynamicsWorld;
@@ -159,7 +120,7 @@ public:
 	}
 };
 
-void TGSStacking::initPhysics()
+void TGSCup::initPhysics()
 {
     steps = 0;
     if (g_constraintSolverType == 3)
@@ -220,56 +181,69 @@ void TGSStacking::initPhysics()
     
 
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
-
-	// create a ground
-	{
-		btVector3 baseHalfExtents(btScalar(25), btScalar(25), btScalar(25));
-		float baseMass = .0f;
-
-        btTransform trans;
-        trans.setIdentity();
-        trans.setOrigin(btVector3(0, -25, 0));
-        btCollisionShape* box = new btBoxShape(baseHalfExtents);
-        btCollisionShape* sphere = new btSphereShape(25);
-        if(use_multibody){
-//            createMultibody(baseMass, trans, box);
-            createMultibody(baseMass, trans, sphere);
-        }
-        else{
-            btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));
-                 m_collisionShapes.push_back(groundShape);
-                 btTransform groundTransform;
-                 groundTransform.setIdentity();
-                 groundTransform.setOrigin(btVector3(0, -25, 0));
-                 groundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), SIMD_PI * 0.));
-                 //We can also use DemoApplication::localCreateRigidBody, but for clarity it is provided here:
-                 btScalar mass(0.);
-
-                 //rigidbody is dynamic if and only if mass is non zero, otherwise static
-                 bool isDynamic = (mass != 0.f);
-
-                 btVector3 localInertia(0, 0, 0);
-                 if (isDynamic)
-                     groundShape->calculateLocalInertia(mass, localInertia);
-
-                 //using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-                 btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-                 btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
-                 btRigidBody* body = new btRigidBody(rbInfo);
-                 body->setFriction(1);
-
-                 //add the ground to the dynamics world
-                 m_dynamicsWorld->addRigidBody(body, 1, 1+2);
+        
+    //load desk from urdf file
+    {
+        int flags = 0;
+        double globalScaling = 1;
+        char m_fileName[1024] = "desk/desk.urdf";
+        BulletURDFImporter u2b(m_guiHelper, 0, 0, globalScaling, flags);
+        bool loadOk = u2b.loadURDF(m_fileName);
+        if(loadOk){
+            btTransform trans;
+            trans.setIdentity();
+            trans.setRotation(btQuaternion(btVector3(1,0,0), -SIMD_PI*0.5));
+            //            trans.setOrigin(btVector3(0,-1,0));
+            MyMultiBodyCreator creation(m_guiHelper);
+            
+            bool m_useMultiBody = true;
+            ConvertURDF2Bullet(u2b, creation, trans, m_dynamicsWorld, m_useMultiBody, u2b.getPathPrefix());
+            for (int i = 0; i < u2b.getNumAllocatedCollisionShapes(); i++)
+            {
+                m_collisionShapes.push_back(u2b.getAllocatedCollisionShape(i));
+            }
+            for (int i = 0; i < m_dynamicsWorld->getNumMultiBodyConstraints(); i++)
+            {
+                m_dynamicsWorld->getMultiBodyConstraint(i)->finalizeMultiDof();
+            }
         }
     }
-
-	Ctor_RbUpStack(num_objects);
+    
+    // load a cup from urdf file
+    if(1)
+    {
+        int flags = 0;
+        double globalScaling = 1;
+        char m_fileName[1024] = "cup/coffee_cup.urdf";
+        BulletURDFImporter u2b(m_guiHelper, 0, 0, globalScaling, flags);
+        bool loadOk = u2b.loadURDF(m_fileName);
+        if(loadOk){
+            btTransform identityTrans;
+            identityTrans.setIdentity();
+            identityTrans.setRotation(btQuaternion(btVector3(1,0,0), -0.5*SIMD_PI));
+            //             identityTrans.setRotation(btQuaternion(btVector3(0,1,0), 1*SIMD_PI));
+            identityTrans.setOrigin(btVector3(0,1.5,0));
+            MyMultiBodyCreator creation(m_guiHelper);
+            
+            bool m_useMultiBody = true;
+            ConvertURDF2Bullet(u2b, creation, identityTrans, m_dynamicsWorld, m_useMultiBody, u2b.getPathPrefix());
+            for (int i = 0; i < u2b.getNumAllocatedCollisionShapes(); i++)
+            {
+                m_collisionShapes.push_back(u2b.getAllocatedCollisionShape(i));
+            }
+            for (int i = 0; i < m_dynamicsWorld->getNumMultiBodyConstraints(); i++)
+            {
+                m_dynamicsWorld->getMultiBodyConstraint(i)->finalizeMultiDof();
+            }
+            
+        }
+    }
 	getDeformableDynamicsWorld()->setImplicit(false);
 	getDeformableDynamicsWorld()->setLineSearch(false);
 	m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
 }
 
-void TGSStacking::exitPhysics()
+void TGSCup::exitPhysics()
 {
 	//cleanup in the reverse order of creation/initialization
 	removePickingConstraint();
@@ -312,7 +286,7 @@ void TGSStacking::exitPhysics()
 	delete m_collisionConfiguration;
 }
 
-class CommonExampleInterface* TGSStackingCreateFunc(struct CommonExampleOptions& options)
+class CommonExampleInterface* TGSCupCreateFunc(struct CommonExampleOptions& options)
 {
-	return new TGSStacking(options.m_guiHelper);
+	return new TGSCup(options.m_guiHelper);
 }
