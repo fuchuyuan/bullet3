@@ -47,6 +47,7 @@
 #include "../DynamicControlDemo/MotorDemo.h"
 #include "../RollingFrictionDemo/RollingFrictionDemo.h"
 #include "../TGSDemo/Cup.h"
+#include "../TGSDemo/HV.h"
 #include "../TGSDemo/Stacking.h"
 #include "../TGSDemo/FixedJoints.h"
 #include "../DeformableDemo/DeformableRigid.h"
@@ -202,6 +203,7 @@ static ExampleEntry gDefaultExamples[] =
 //ExampleEntry(1, "Spheres & Plane C-API (Bullet3)", "Collision C-API using Bullet 3.x backend", CollisionTutorialBullet2CreateFunc,TUT_SPHERE_PLANE_RTB3),
         ExampleEntry(0, "TGS"),
         ExampleEntry(1, "Cup", "Compound shape demo", TGSCupCreateFunc),
+        ExampleEntry(1, "HV", "hv on ground demo", TGSHVCreateFunc),
         ExampleEntry(1, "Stacking", "Stacking different geometries", TGSStackingCreateFunc),
         ExampleEntry(1, "Joint limit", "A row of boxes joint by revolute joint with joint limtis", TGSFixedJointsCreateFunc),
         ExampleEntry(0, "Deformabe Body"),
