@@ -56,8 +56,8 @@ btScalar btMultiBodyConstraintSolver::solveSingleIteration(int iteration, btColl
 	//solve featherstone normal contact
 	for (int j0 = 0; j0 < m_multiBodyNormalContactConstraints.size(); j0++)
 	{
-//        int index = (j0 + infoGlobal.m_TGS_iteration) & 1 ? j0 :  m_multiBodyNormalContactConstraints.size() - 1 - j0;
-        int index = j0;
+        int index = (j0 + infoGlobal.m_TGS_iteration) & 1 ? j0 :  m_multiBodyNormalContactConstraints.size() - 1 - j0;
+//        int index = j0;
 		btMultiBodySolverConstraint& constraint = m_multiBodyNormalContactConstraints[index];
 		btScalar residual = 0.f;
 
@@ -749,7 +749,7 @@ void btMultiBodyConstraintSolver::setupMultiBodyContactConstraint(btMultiBodySol
 
 		solverConstraint.m_angularComponentB = rb1 ? rb1->getInvInertiaTensorWorld() * -torqueAxis1 * rb1->getAngularFactor() : btVector3(0, 0, 0);
 	}
-//    if(!isFriction && multiBodyB->getBasePos()[1]>0.2){
+//    if(!isFriction /*&& multiBodyB->getBasePos()[1]>0.2*/){
 //        printf("contact pos on A %.8f %.8f %.8f\n", pos1[0], pos1[1], pos1[2]);
 //        printf("contact pos on B %.8f %.8f %.8f\n", pos2[0], pos2[1], pos2[2]);
 //        printf("base pos A %.8f %.8f %.8f\n",multiBodyA->getBasePos()[0],multiBodyA->getBasePos()[1], multiBodyA->getBasePos()[2]);

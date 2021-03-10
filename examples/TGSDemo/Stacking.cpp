@@ -24,7 +24,8 @@
 #include "../CommonInterfaces/CommonDeformableBodyBase.h"
 #include "../Utils/b3ResourcePath.h"
 
-static int g_constraintSolverType = 0;
+static int g_constraintSolverType = 1
+;
 ///The TGSStacking shows contact between deformable objects and rigid objects.
 class TGSStacking : public CommonDeformableBodyBase
 {
@@ -43,7 +44,7 @@ public:
         internalSteps = 250;
         iterations = 1;
         tgsSteps = 10;
-        num_objects = 4;
+        num_objects = 1;
         use_multibody = true;
 	}
 	virtual ~TGSStacking()
@@ -70,10 +71,10 @@ public:
 //        m_dynamicsWorld->stepSimulation(1.0/internalSteps, 1 , 1.0/internalSteps);
         steps ++;
 //        if(steps%10 ==0){
-//            if(use_multibody)
-//                b3Printf("top sphere pos %f %f %f\n", objects[num_objects-1]->getBasePos()[0], objects[num_objects-1]->getBasePos()[1],objects[num_objects-1]->getBasePos()[2]);
-//            else
-//                b3Printf("top sphere pos %f %f %f\n", objects_rigid[num_objects-1]->getCenterOfMassPosition()[0], objects_rigid[num_objects-1]->getCenterOfMassPosition()[1], objects_rigid[num_objects-1]->getCenterOfMassPosition()[2]);
+            if(use_multibody)
+                b3Printf("top object pos %.8f %.8f %.8f\n", objects[num_objects-1]->getBasePos()[0], objects[num_objects-1]->getBasePos()[1],objects[num_objects-1]->getBasePos()[2]);
+            else
+                b3Printf("top object pos %.8f %.8f %.8f\n", objects_rigid[num_objects-1]->getCenterOfMassPosition()[0], objects_rigid[num_objects-1]->getCenterOfMassPosition()[1], objects_rigid[num_objects-1]->getCenterOfMassPosition()[2]);
 //        }
         
 	}
@@ -92,7 +93,7 @@ public:
         pMultiBody->setWorldToBaseRot(transform.getRotation());
         pMultiBody->setCanSleep(canSleep);
 
-        btScalar friction = 0.1;
+        btScalar friction = 0.5;
         {
             btMultiBodyLinkCollider* col = new btMultiBodyLinkCollider(pMultiBody, -1);
             col->setCollisionShape(collisionShape);
@@ -105,6 +106,7 @@ public:
             m_dynamicsWorld->addCollisionObject(col, 2, 1 + 2);
             col->setFriction(friction);
             pMultiBody->setBaseCollider(col);
+            col->setCollisionFlags(col->getCollisionFlags() | btCollisionObject::CF_HAS_FRICTION_ANCHOR);
         }
         return pMultiBody;
     }
@@ -123,7 +125,7 @@ public:
 		localTransform.setRotation(orn);
 		cylinderCompound->addChildShape(localTransform, cylinderShape);
 
-        btScalar radius = .1;
+        btScalar radius = .5;
 		btCollisionShape* shape[] = {
 			new btBoxShape(btVector3(radius, radius, radius)),
 			new btSphereShape(radius),
@@ -133,9 +135,10 @@ public:
 		for (int i = 0; i < count; i++)
 		{
 			startTransform.setOrigin(btVector3(0, i*radius*2 /*+ 1 */ + radius, 0));
-            mass *= 5;
+            if(i==count-1)
+                mass *= 100;
             if(use_multibody){
-                objects[i] = createMultibody(mass, startTransform, shape[1]);}
+                objects[i] = createMultibody(mass, startTransform, shape[0]);}
             else{
                 objects_rigid[i] = createRigidBody(mass, startTransform, shape[1]);
 //                objects_rigid[i]->setDamping(0.04, 0.04);
@@ -232,11 +235,13 @@ void TGSStacking::initPhysics()
         btCollisionShape* box = new btBoxShape(baseHalfExtents);
         btCollisionShape* sphere = new btSphereShape(25);
         if(use_multibody){
-//            createMultibody(baseMass, trans, box);
-            createMultibody(baseMass, trans, sphere);
+            createMultibody(baseMass, trans, box);
+//            createMultibody(baseMass, trans, sphere);
         }
         else{
-            btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));
+            btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),0);
+            groundShape->setMargin(0.04f);
+//            btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(150.), btScalar(25.), btScalar(150.)));
                  m_collisionShapes.push_back(groundShape);
                  btTransform groundTransform;
                  groundTransform.setIdentity();
